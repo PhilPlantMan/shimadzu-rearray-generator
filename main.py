@@ -37,13 +37,12 @@ def run():
         well = well_var.get()
         starting_target = wellID_dropdown.get()
         matrix_type = matrix_var.get()
-        global stub_df
-        stub_df = read_stub_tsv(directory_entry.get())
 
         output_text.insert(tk.END, "Matrix reservoir well: {}\n".format(well))
         output_text.insert(tk.END, "Target starting position: {}\n".format(starting_target))
         output_text.insert(tk.END, "Matrix addition mode: {}\n".format(matrix_type))
 
+        stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array(stub_df)
         output_text.insert(tk.END, "Success! PIXL rearry file exported")
 
@@ -155,6 +154,68 @@ def export_pixl_array(stub_df):
     array_path = os.path.join(export_directory_entry.get(), project_name + "_MALDI_Rearray.csv")
     pixl_array.to_csv(array_path, header = False, index = False)
 
+def show_additional_options():
+    if additional_options_var.get() == 1:
+        export_directory_label.pack_forget()
+        export_directory_entry.pack_forget()
+        export_directory_button.pack_forget()
+        run_button.pack_forget()
+        output_label.pack_forget()
+        output_text.pack_forget()
+        format_label.pack()
+        format_96_radiobutton.pack()
+        format_384_radiobutton.pack()
+        plate_type_label.pack()
+        plate_type_agar_radiobutton.pack()
+        plate_type_multiwell_radiobutton.pack()
+        start_position_label.pack()
+        start_position_dropdown.pack()
+        export_directory_label.pack()
+        export_directory_entry.pack()
+        export_directory_button.pack()
+        run_button.pack()
+        output_label.pack()
+        output_text.pack()
+        format_var.trace('w', update_start_position_options)
+    else:
+        format_label.pack_forget()
+        format_96_radiobutton.pack_forget()
+        format_384_radiobutton.pack_forget()
+        plate_type_label.pack_forget()
+        plate_type_agar_radiobutton.pack_forget()
+        plate_type_multiwell_radiobutton.pack_forget()
+        start_position_label.pack_forget()
+        start_position_dropdown.pack_forget()
+
+def array_lister(array_format):
+    if array_format == "96":
+        rows = 8
+        cols = 12
+    elif array_format == "384":
+        rows = 16
+        cols = 24
+    else: raise Exception("format not compatible")
+    well_positions = []
+    for row in range(rows):
+        for col in range(cols):
+            well_positions.append("{}{}".format(chr(65 + row), col + 1))
+    return well_positions
+
+def update_start_position_options(*args):
+    format_selection = format_var.get()
+    valid_positions = array_lister(format_selection)
+    """
+        # Determine the valid well positions based on the format selection
+        if format_selection == "96":
+            valid_positions = array_lister(array_format)  # All positions are valid for 96 format
+        elif format_selection == "384":
+            valid_positions = well_positions[:96]  # Only the first 96 positions are valid for 384 format
+    """
+    # Clear the current options and update with the valid positions
+    start_position_dropdown['menu'].delete(0, 'end')
+    for position in valid_positions:
+        start_position_dropdown['menu'].add_command(label=position, command=tk._setit(start_position_var, position))
+
 
 shimadzuAdapterCoords_df = pd.read_csv("shimadzu_adapter_coordinates.csv")
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
@@ -180,12 +241,11 @@ directory_button.pack()
 well_label = tk.Label(root, text="Enter matrix reservoir position in 96 well plate  e.g. A1:")
 well_label.pack()
 
-well_positions = []
-for row in range(8):
-    for col in range(12):
-        well_positions.append("{}{}".format(chr(65 + row), col + 1))
+
+
 
 # Create the dropdown using the well positions as options
+well_positions = array_lister("96")
 well_var = tk.StringVar(root)
 well_var.set(read_config_variable("matrix_position"))  # Default selection
 
@@ -194,7 +254,7 @@ well_dropdown.pack()
 
 
 # Create a dropdown for wellID selection
-wellID_label = tk.Label(root, text="Select target postion to start picking to:")
+wellID_label = tk.Label(root, text="Select MALDI target postion to start picking to:")
 wellID_label.pack()
 
 
@@ -220,6 +280,38 @@ single_dip_radio.pack()
 double_dip_radio = tk.Radiobutton(root, text="Double Dip (recommended)", variable=matrix_var, value="Double Dip")
 double_dip_radio.pack()
 
+
+# Create option to pick to seperate array
+# Additional options
+additional_options_var = tk.IntVar()
+additional_options_checkbutton = tk.Checkbutton(root, text="Pick colony to additional target plate", variable=additional_options_var, command=show_additional_options)
+additional_options_checkbutton.pack()
+
+# Format Selection
+format_var = tk.StringVar(root)
+format_label = tk.Label(root, text="Select Format:")
+format_var.set("96")
+format_96_radiobutton = tk.Radiobutton(root, text="96", variable=format_var, value="96")
+format_384_radiobutton = tk.Radiobutton(root, text="384", variable=format_var, value="384")
+
+# Plate Type Selection
+plate_type_var = tk.StringVar(root)
+plate_type_label = tk.Label(root, text="Select Plate Type:")
+plate_type_var.set("Agar")
+plate_type_agar_radiobutton = tk.Radiobutton(root, text="Agar", variable=plate_type_var, value="Agar")
+plate_type_multiwell_radiobutton = tk.Radiobutton(root, text="Multiwell", variable=plate_type_var, value="Multiwell")
+
+# Start Position Selection
+start_position_label = tk.Label(root, text="Select Start Position:")
+start_position_var = tk.StringVar(root)
+target_positions = array_lister(format_var.get())
+start_position_var.set(target_positions[0])  # Default selection
+#start_position_var.set(well_positions[0])
+start_position_dropdown = tk.OptionMenu(root, start_position_var, *target_positions)
+
+
+
+
 # Create a label and entry for directory selection for export
 
 export_directory_label = tk.Label(root, text="Select a PIXL rearray export directory:")
@@ -232,6 +324,10 @@ export_directory_entry.insert(tk.END, get_export_directory())
 # Create a button to trigger directory selection
 export_directory_button = tk.Button(root, text="Browse", command=select_export_directory)
 export_directory_button.pack()
+
+
+
+
 
 
 # Create a button to run the operation
