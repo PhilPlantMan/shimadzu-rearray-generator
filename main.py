@@ -38,10 +38,13 @@ def run():
         starting_target = wellID_dropdown.get()
         matrix_type = matrix_var.get()
 
+
         output_text.insert(tk.END, "Matrix reservoir well: {}\n".format(well))
         output_text.insert(tk.END, "Target starting position: {}\n".format(starting_target))
         output_text.insert(tk.END, "Matrix addition mode: {}\n".format(matrix_type))
-
+        #
+        if additional_options_var.get() == 1:
+            output_text.insert(tk.END, "Additional {} {} target plate enabled\n".format(format_var.get(), plate_type_var.get()))
         stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array(stub_df)
         output_text.insert(tk.END, "Success! PIXL rearry file exported")
@@ -150,6 +153,10 @@ def export_pixl_array(stub_df):
     global pixl_array
     pixl_array = prepare_pixl_array(stub_df)
     pixl_array = append_pixl_commands_to_array(pixl_array, stub_df)
+
+    if additional_options_var.get() == 1:
+        pixl_array = append_additional_target_to_array(pixl_array, stub_df)
+
     project_name = os.path.basename(directory_entry.get())
     array_path = os.path.join(export_directory_entry.get(), project_name + "_MALDI_Rearray.csv")
     pixl_array.to_csv(array_path, header = False, index = False)
@@ -204,18 +211,30 @@ def array_lister(array_format):
 def update_start_position_options(*args):
     format_selection = format_var.get()
     valid_positions = array_lister(format_selection)
-    """
-        # Determine the valid well positions based on the format selection
-        if format_selection == "96":
-            valid_positions = array_lister(array_format)  # All positions are valid for 96 format
-        elif format_selection == "384":
-            valid_positions = well_positions[:96]  # Only the first 96 positions are valid for 384 format
-    """
     # Clear the current options and update with the valid positions
     start_position_dropdown['menu'].delete(0, 'end')
     for position in valid_positions:
         start_position_dropdown['menu'].add_command(label=position, command=tk._setit(start_position_var, position))
 
+def append_additional_target_to_array(pixl_array, stub_df):
+    targetPlateID = "Additional"+plate_type_var.get()+"Plate"
+    plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
+    target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : plateTypeConversion, 'sourceCol' : format_var.get(), 'target': "Target"})
+
+    pixl_array = pd.concat([target_definition.to_frame().T, pixl_array], ignore_index=True)
+    target_positions = array_lister(format_var.get())
+
+    targetPositionIndex = target_positions.index(start_position_var.get())
+
+    for index, row in stub_df.iterrows():
+        if index == 0: continue
+        target_position = target_positions[targetPositionIndex]
+        target_row = target_position[0]  # Extract the first character
+        target_col = int(target_position[1:])
+        targetSeries = pd.Series({"source": row['source'],"sourceRow": row['sourceRow'],"sourceCol": row['sourceCol'], "target": targetPlateID,"targetRow": target_row ,"targetCol": target_col})
+        pixl_array = pd.concat([pixl_array, targetSeries.to_frame().T], ignore_index=True)
+        targetPositionIndex += 1
+    return pixl_array
 
 shimadzuAdapterCoords_df = pd.read_csv("shimadzu_adapter_coordinates.csv")
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
