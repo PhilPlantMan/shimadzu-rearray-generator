@@ -10,6 +10,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 import re
+import sys
 
 
 def read_stub_tsv(path):
@@ -44,7 +45,7 @@ def run():
         output_text.insert(tk.END, "Matrix addition mode: {}\n".format(matrix_type))
         #
         if additional_options_var.get() == 1:
-            output_text.insert(tk.END, "Additional {} {} target plate enabled\n".format(format_var.get(), plate_type_var.get()))
+            output_text.insert(tk.END, "Additional {} MWP target plate enabled\n".format(format_var.get()))
         stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array(stub_df)
         output_text.insert(tk.END, "Success! PIXL rearry file exported")
@@ -108,7 +109,8 @@ def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
     return prepared_array
 
 def read_config_variable(variable_name):
-    config_file = "config.txt"
+    config_file = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
     try:
         with open(config_file, "r") as file:
             for line in file:
@@ -117,12 +119,38 @@ def read_config_variable(variable_name):
                     return export_directory
 
     except FileNotFoundError:
-        print(f"Error: {config_file} not found.")
+        createConfig()
         return None
+
+def createConfig():
+    dirPath = os.path.join(os.getenv('APPDATA'),
+                               "Singer Instrument Company Limited\PIXL_MALDI_Rearray")
+    if not os.path.isdir(dirPath):
+        os.makedirs(dirPath)
+
+    template_variables = {
+    "rearry_export_directory": "desktop",
+    "first_target_position": "Target 1, A1",
+    "matrix_application_mode": "Double Dip",
+    "matrix_position": "A1"
+    # Add more variables as needed
+    }
+
+    config_file = os.path.join(dirPath,"config.txt")
+
+    try:
+        with open(config_file, "w") as file:
+            for variable, default_value in template_variables.items():
+                file.write(f"{variable} = {default_value}\n")
+
+    except Exception as e:
+        print(f"Error: Failed to create config template. {str(e)}")
+
 
 
 def update_config_variable(variable_name, new_value):
-    config_file = "config.txt"
+    config_file = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
     updated_lines = []
 
     try:
@@ -172,9 +200,9 @@ def show_additional_options():
         format_label.pack()
         format_96_radiobutton.pack()
         format_384_radiobutton.pack()
-        plate_type_label.pack()
-        plate_type_agar_radiobutton.pack()
-        plate_type_multiwell_radiobutton.pack()
+        #plate_type_label.pack()
+        #plate_type_agar_radiobutton.pack()
+        #plate_type_multiwell_radiobutton.pack()
         start_position_label.pack()
         start_position_dropdown.pack()
         export_directory_label.pack()
@@ -188,9 +216,9 @@ def show_additional_options():
         format_label.pack_forget()
         format_96_radiobutton.pack_forget()
         format_384_radiobutton.pack_forget()
-        plate_type_label.pack_forget()
-        plate_type_agar_radiobutton.pack_forget()
-        plate_type_multiwell_radiobutton.pack_forget()
+       # plate_type_label.pack_forget()
+        #plate_type_agar_radiobutton.pack_forget()
+        #plate_type_multiwell_radiobutton.pack_forget()
         start_position_label.pack_forget()
         start_position_dropdown.pack_forget()
 
@@ -217,9 +245,9 @@ def update_start_position_options(*args):
         start_position_dropdown['menu'].add_command(label=position, command=tk._setit(start_position_var, position))
 
 def append_additional_target_to_array(pixl_array, stub_df):
-    targetPlateID = "Additional"+plate_type_var.get()+"Plate"
-    plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
-    target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : plateTypeConversion, 'sourceCol' : format_var.get(), 'target': "Target"})
+    targetPlateID = "AdditionalMWPTarget"
+    #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
+    target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : "MWP", 'sourceCol' : format_var.get(), 'target': "Target"})
 
     pixl_array = pd.concat([target_definition.to_frame().T, pixl_array], ignore_index=True)
     target_positions = array_lister(format_var.get())
@@ -236,7 +264,18 @@ def append_additional_target_to_array(pixl_array, stub_df):
         targetPositionIndex += 1
     return pixl_array
 
-shimadzuAdapterCoords_df = pd.read_csv("shimadzu_adapter_coordinates.csv")
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
 #################  GUI code  #############################
 
@@ -313,12 +352,6 @@ format_var.set("96")
 format_96_radiobutton = tk.Radiobutton(root, text="96", variable=format_var, value="96")
 format_384_radiobutton = tk.Radiobutton(root, text="384", variable=format_var, value="384")
 
-# Plate Type Selection
-plate_type_var = tk.StringVar(root)
-plate_type_label = tk.Label(root, text="Select Plate Type:")
-plate_type_var.set("Agar")
-plate_type_agar_radiobutton = tk.Radiobutton(root, text="Agar", variable=plate_type_var, value="Agar")
-plate_type_multiwell_radiobutton = tk.Radiobutton(root, text="Multiwell", variable=plate_type_var, value="Multiwell")
 
 # Start Position Selection
 start_position_label = tk.Label(root, text="Select Start Position:")
@@ -327,8 +360,6 @@ target_positions = array_lister(format_var.get())
 start_position_var.set(target_positions[0])  # Default selection
 #start_position_var.set(well_positions[0])
 start_position_dropdown = tk.OptionMenu(root, start_position_var, *target_positions)
-
-
 
 
 # Create a label and entry for directory selection for export
@@ -343,10 +374,6 @@ export_directory_entry.insert(tk.END, get_export_directory())
 # Create a button to trigger directory selection
 export_directory_button = tk.Button(root, text="Browse", command=select_export_directory)
 export_directory_button.pack()
-
-
-
-
 
 
 # Create a button to run the operation

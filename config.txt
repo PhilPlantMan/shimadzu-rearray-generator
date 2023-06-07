@@ -1,4 +1,0 @@
-matrix_position = A1
-first_target_position = Target 1, A1
-matrix_application_mode = Double Dip
-rearry_export_directory = C:/Users/philipkirk/Desktop
