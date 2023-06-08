@@ -1,23 +1,25 @@
-graph LR
+graph TD
 A((Start))
-A --> B(Input)
+A --> B(User input in GUI)
 B --> C[Configuration File]
+C --> B
 B --> D[Run Button]
-D --> E{Valid Input?}
-E -- Yes --> F(Run)
-F --> G(Read Stub TSV)
-H[Colony Detection Directory] --> G
-G --> I[(pandas DataFrame)]
-I --> J(Export PIXL Array)
-J --> K(Prepare PIXL Array)
-L[User-defined Settings] --> K
-K -- Plate Definitions -->U[(Rearray DataFrame)]
-J --> N[Colony Detection Directory]
-J --> O[pandas DataFrame]
-J --> P(Additional Plate?)
-P -- Yes --> Q[Append Additional Target]
-Q --> O
-P -- No --> O
-J --> R[Export PIXL Array]
-R --> S[User-defined Destination Folder]
-R --> T((End))
+D --> F("run()")
+F --> E{Valid Input?}
+E -- Yes --> G("Read_Stub_TSV()")
+
+H[Colony Detection directory] --> G
+G --> I[(stub DataFrame)]
+I --> J("export_pixl_array()")
+J --> K("prepare_pixl_array()")
+K -- Plate Definitions appended -->U[(Rearray DataFrame)]
+U --> PC["append_pixl_commands_to_array()"]
+UD3[User-defined Settings] --> PC
+PC -- Colony and matrix transfer commands appended-->U2[(Rearray DataFrame)]
+U2 --> P{Additional Plate?}
+UD2[User-defined Settings] --> P{Additional Plate?}
+P -- Yes --> Q["append_additional_target_to_array()"]
+Q -- Addition colony transfer commands appended --> U3[(Rearray DataFrame)]
+P -- No --> S[Export PIXL array]
+U3 --> S
+S --> T((End))
