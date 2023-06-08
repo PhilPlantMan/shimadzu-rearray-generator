@@ -15,35 +15,33 @@ The application exports a rearray file to the users chosen directory for use wit
 
 ### Implementation
 
-The application utilizes TKinter as the GUI framework,
-providing a user-friendly environment for interaction. Users are prompted to
+The application utilizes TKinter as the GUI framework. Users are prompted to
 input the location of their Colony Detection project directory and specify
 settings for generating the rearray file according to their preferences.
 To enhance usability, user defined settings are persistently stored in a
-configuration file (config.txt stored in Appdata) which will be
+configuration file (`config.txt` stored in Appdata) which will be
 used to prepopulate the GUI in future sessions.
 
-When the user initiates the execution by clicking the "Run" button, the
-corresponding `run()` function is invoked. This function orchestrates various
-steps in generating the rearray file. Initially, the
+When the user click the "Run" button, the
+`run()` function is invoked. This function orchestrates various
+steps in generating the rearray file. First, the
 function invokes the `read_stub_tsv()` method, which retrieves the rearray 'stub'
 file from the Colony Detection directory and converts it into a `pandas` dataframe.
 Subsequently, the dataframe is passed to the `export_pixl_array()` function,
 responsible for coordinating the construction of the PIXL rearray file based on
 the user-defined settings. Within this function, several key operations are
 performed in a sequential manner. First, the `prepare_pixl_array()` method is
-called to incorporate plate definitions into the rearray file, establishing the
-framework for subsequent operations. Next, the `append_pixl_commands_to_array()`
+called to contruct a black dataframe that will become the PIXL rearray and
+append plate definitions. Next, the `append_pixl_commands_to_array()`
 function adds colony transfer and matrix application commands to the rearray
-file, ensuring comprehensive and accurate specifications.
+dataframe.
 
-Furthermore, if the user specifies the requirement to pick to an additional
+If the user specifies the requirement to pick to an additional
 plate, the `append_additional_target_to_array()` method is invoked to include
-the corresponding commands in the rearray file, accommodating the user's
-specific needs. Finally, upon completion of the rearray file generation process,
+the corresponding commands in the rearray file. Finally, upon completion of the
+rearray file generation process,
 the `export_pixl_array()` function exports the resulting PIXL array file to the
-user-defined destination folder, streamlining accessibility and further
-analysis.
+user-defined destination folder.
 
 [![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVERcbkEoKFN0YXJ0KSlcbkEgLS0-IEIoVXNlciBpbnB1dCBpbiBHVUkpXG5CIC0tPiBDW0NvbmZpZ3VyYXRpb24gRmlsZV1cbkMgLS0-IEJcbkIgLS0-IERbUnVuIEJ1dHRvbl1cbkQgLS0-IEYoXCJydW4oKVwiKVxuRiAtLT4gRXtWYWxpZCBJbnB1dD99XG5FIC0tIFllcyAtLT4gRyhcIlJlYWRfU3R1Yl9UU1YoKVwiKVxuXG5IW0NvbG9ueSBEZXRlY3Rpb24gZGlyZWN0b3J5XSAtLT4gR1xuRyAtLT4gSVsoc3R1YiBEYXRhRnJhbWUpXVxuSSAtLT4gSihcImV4cG9ydF9waXhsX2FycmF5KClcIilcbkogLS0-IEsoXCJwcmVwYXJlX3BpeGxfYXJyYXkoKVwiKVxuSyAtLSBQbGF0ZSBEZWZpbml0aW9ucyBhcHBlbmRlZCAtLT5VWyhSZWFycmF5IERhdGFGcmFtZSldXG5VIC0tPiBQQ1tcImFwcGVuZF9waXhsX2NvbW1hbmRzX3RvX2FycmF5KClcIl1cblVEM1tVc2VyLWRlZmluZWQgU2V0dGluZ3NdIC0tPiBQQ1xuUEMgLS0gQ29sb255IGFuZCBtYXRyaXggdHJhbnNmZXIgY29tbWFuZHMgYXBwZW5kZWQtLT5VMlsoUmVhcnJheSBEYXRhRnJhbWUpXVxuVTIgLS0-IFB7QWRkaXRpb25hbCBQbGF0ZT99XG5VRDJbVXNlci1kZWZpbmVkIFNldHRpbmdzXSAtLT4gUHtBZGRpdGlvbmFsIFBsYXRlP31cblAgLS0gWWVzIC0tPiBRW1wiYXBwZW5kX2FkZGl0aW9uYWxfdGFyZ2V0X3RvX2FycmF5KClcIl1cblEgLS0gQWRkaXRpb24gY29sb255IHRyYW5zZmVyIGNvbW1hbmRzIGFwcGVuZGVkIC0tPiBVM1soUmVhcnJheSBEYXRhRnJhbWUpXVxuUCAtLSBObyAtLT4gU1tFeHBvcnQgUElYTCBhcnJheV1cblUzIC0tPiBTXG5TIC0tPiBUKChFbmQpKSIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)](https://mermaid-js.github.io/docs/mermaid-live-editor-beta/#/edit/eyJjb2RlIjoiZ3JhcGggVERcbkEoKFN0YXJ0KSlcbkEgLS0-IEIoVXNlciBpbnB1dCBpbiBHVUkpXG5CIC0tPiBDW0NvbmZpZ3VyYXRpb24gRmlsZV1cbkMgLS0-IEJcbkIgLS0-IERbUnVuIEJ1dHRvbl1cbkQgLS0-IEYoXCJydW4oKVwiKVxuRiAtLT4gRXtWYWxpZCBJbnB1dD99XG5FIC0tIFllcyAtLT4gRyhcIlJlYWRfU3R1Yl9UU1YoKVwiKVxuXG5IW0NvbG9ueSBEZXRlY3Rpb24gZGlyZWN0b3J5XSAtLT4gR1xuRyAtLT4gSVsoc3R1YiBEYXRhRnJhbWUpXVxuSSAtLT4gSihcImV4cG9ydF9waXhsX2FycmF5KClcIilcbkogLS0-IEsoXCJwcmVwYXJlX3BpeGxfYXJyYXkoKVwiKVxuSyAtLSBQbGF0ZSBEZWZpbml0aW9ucyBhcHBlbmRlZCAtLT5VWyhSZWFycmF5IERhdGFGcmFtZSldXG5VIC0tPiBQQ1tcImFwcGVuZF9waXhsX2NvbW1hbmRzX3RvX2FycmF5KClcIl1cblVEM1tVc2VyLWRlZmluZWQgU2V0dGluZ3NdIC0tPiBQQ1xuUEMgLS0gQ29sb255IGFuZCBtYXRyaXggdHJhbnNmZXIgY29tbWFuZHMgYXBwZW5kZWQtLT5VMlsoUmVhcnJheSBEYXRhRnJhbWUpXVxuVTIgLS0-IFB7QWRkaXRpb25hbCBQbGF0ZT99XG5VRDJbVXNlci1kZWZpbmVkIFNldHRpbmdzXSAtLT4gUHtBZGRpdGlvbmFsIFBsYXRlP31cblAgLS0gWWVzIC0tPiBRW1wiYXBwZW5kX2FkZGl0aW9uYWxfdGFyZ2V0X3RvX2FycmF5KClcIl1cblEgLS0gQWRkaXRpb24gY29sb255IHRyYW5zZmVyIGNvbW1hbmRzIGFwcGVuZGVkIC0tPiBVM1soUmVhcnJheSBEYXRhRnJhbWUpXVxuUCAtLSBObyAtLT4gU1tFeHBvcnQgUElYTCBhcnJheV1cblUzIC0tPiBTXG5TIC0tPiBUKChFbmQpKSIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)
 
