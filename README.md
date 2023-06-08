@@ -73,7 +73,7 @@ A distribution is created within CMD:
 1. Install pyinstaller: `pip install pyinstaller'
 2. Change directory to repository directory
 3. Run `pyinstaller shimadzu-rearray-generator.spec shimadzu-rearray-generator.py`
-4. The `.spec` file defines, anmost other things, what other files are bundled with the distribution.
+4. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
 5. A `dist` directory will be produced that can be deployed to customers.
 
 
