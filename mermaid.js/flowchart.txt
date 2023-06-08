@@ -1,0 +1,25 @@
+graph TD
+A((Start))
+A --> B(User input in GUI)
+B --> C[Configuration File]
+C --> B
+B --> D[Run Button]
+D --> F("run()")
+F --> E{Valid Input?}
+E -- Yes --> G("Read_Stub_TSV()")
+
+H[Colony Detection directory] --> G
+G --> I[(stub DataFrame)]
+I --> J("export_pixl_array()")
+J --> K("prepare_pixl_array()")
+K -- Plate Definitions appended -->U[(Rearray DataFrame)]
+U --> PC["append_pixl_commands_to_array()"]
+UD3[User-defined Settings] --> PC
+PC -- Colony and matrix transfer commands appended-->U2[(Rearray DataFrame)]
+U2 --> P{Additional Plate?}
+UD2[User-defined Settings] --> P{Additional Plate?}
+P -- Yes --> Q["append_additional_target_to_array()"]
+Q -- Addition colony transfer commands appended --> U3[(Rearray DataFrame)]
+P -- No --> S[Export PIXL array]
+U3 --> S
+S --> T((End))
