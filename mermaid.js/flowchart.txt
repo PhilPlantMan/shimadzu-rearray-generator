@@ -1,0 +1,23 @@
+graph LR
+A((Start))
+A --> B(Input)
+B --> C[Configuration File]
+B --> D[Run Button]
+D --> E{Valid Input?}
+E -- Yes --> F(Run)
+F --> G(Read Stub TSV)
+H[Colony Detection Directory] --> G
+G --> I[(pandas DataFrame)]
+I --> J(Export PIXL Array)
+J --> K(Prepare PIXL Array)
+L[User-defined Settings] --> K
+K -- Plate Definitions -->U[(Rearray DataFrame)]
+J --> N[Colony Detection Directory]
+J --> O[pandas DataFrame]
+J --> P(Additional Plate?)
+P -- Yes --> Q[Append Additional Target]
+Q --> O
+P -- No --> O
+J --> R[Export PIXL Array]
+R --> S[User-defined Destination Folder]
+R --> T((End))
