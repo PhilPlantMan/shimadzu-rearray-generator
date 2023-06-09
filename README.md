@@ -1,4 +1,4 @@
-![](images/logo.png)
+![](doc helpers/images/logo.png)
 
 # PIXL Rearray Generator for the Shimadzu MALDI-TOF microbial ID workflow
 
@@ -72,9 +72,10 @@ A distribution is created within CMD:
 
 1. Install pyinstaller: `pip install pyinstaller'
 2. Change directory to repository directory
-3. Run `pyinstaller shimadzu-rearray-generator.spec shimadzu-rearray-generator.py`
-4. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
-5. A `dist` directory will be produced that can be deployed to customers.
+3. [`edit file_version_info.txt` with version number etc] 
+4. Run `shimadzu-rearray-generator.py --add-data "shimadzu_adapter_coordinates.csv;." --version-file file_version_info.txt`
+5. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
+6. A `dist` directory will be produced that can be deployed to customers.
 
 
 ## For Users
