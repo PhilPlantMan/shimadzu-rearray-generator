@@ -1,4 +1,4 @@
-![](images/logo.png)
+![](docs/images/logo.png)
 
 # PIXL Rearray Generator for the Shimadzu MALDI-TOF microbial ID workflow
 
@@ -7,7 +7,7 @@ This python program generates a PIXL rearray file for a Shimadzu MALDI-TOF micro
 Users are presented with a GUI which allows them to select a Colony Detection folder
 produced by PIXL and select workflow options such as starting position on the target, matrix location on a multiwell plate and whether they would also wish to pin to a separate multiwell plate for downstream culturing or other uses.
 
-![](images/app_screenshot.png)
+![](docs/images/app_screenshot.png)
 
 The application exports a rearray file to the users chosen directory for use with PIXL's Rearray mode.
 
@@ -56,7 +56,7 @@ GUI.
 
 The flowchart was constructed using [mermaid-js.github.io](https://mermaid-js.github.io/docs/mermaid-live-editor-beta/#/edit/eyJjb2RlIjoiZ3JhcGggVERcbkEoKFN0YXJ0KSlcbkEgLS0-IEIoVXNlciBpbnB1dCBpbiBHVUkpXG5CIC0tPiBDW0NvbmZpZ3VyYXRpb24gRmlsZV1cbkMgLS0-IEJcbkIgLS0-IERbUnVuIEJ1dHRvbl1cbkQgLS0-IEYoXCJydW4oKVwiKVxuRiAtLT4gRXtWYWxpZCBJbnB1dD99XG5FIC0tIFllcyAtLT4gRyhcIlJlYWRfU3R1Yl9UU1YoKVwiKVxuXG5IW0NvbG9ueSBEZXRlY3Rpb24gZGlyZWN0b3J5XSAtLT4gR1xuRyAtLT4gSVsoc3R1YiBEYXRhRnJhbWUpXVxuSSAtLT4gSihcImV4cG9ydF9waXhsX2FycmF5KClcIilcbkogLS0-IEsoXCJwcmVwYXJlX3BpeGxfYXJyYXkoKVwiKVxuSyAtLSBQbGF0ZSBEZWZpbml0aW9ucyBhcHBlbmRlZCAtLT5VWyhSZWFycmF5IERhdGFGcmFtZSldXG5VIC0tPiBQQ1tcImFwcGVuZF9waXhsX2NvbW1hbmRzX3RvX2FycmF5KClcIl1cblVEM1tVc2VyLWRlZmluZWQgU2V0dGluZ3NdIC0tPiBQQ1xuUEMgLS0gQ29sb255IGFuZCBtYXRyaXggdHJhbnNmZXIgY29tbWFuZHMgYXBwZW5kZWQtLT5VMlsoUmVhcnJheSBEYXRhRnJhbWUpXVxuVTIgLS0-IFB7QWRkaXRpb25hbCBQbGF0ZT99XG5VRDJbVXNlci1kZWZpbmVkIFNldHRpbmdzXSAtLT4gUHtBZGRpdGlvbmFsIFBsYXRlP31cblAgLS0gWWVzIC0tPiBRW1wiYXBwZW5kX2FkZGl0aW9uYWxfdGFyZ2V0X3RvX2FycmF5KClcIl1cblEgLS0gQWRkaXRpb24gY29sb255IHRyYW5zZmVyIGNvbW1hbmRzIGFwcGVuZGVkIC0tPiBVM1soUmVhcnJheSBEYXRhRnJhbWUpXVxuUCAtLSBObyAtLT4gU1tFeHBvcnQgUElYTCBhcnJheV1cblUzIC0tPiBTXG5TIC0tPiBUKChFbmQpKSIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)
 
-The mermaid.js code to construct it is stored in /mermaid.js/flowchart.txt
+The mermaid.js code to construct it is stored in docs/mermaid.js/flowchart.txt
 
 ### Distribution
 
@@ -72,9 +72,10 @@ A distribution is created within CMD:
 
 1. Install pyinstaller: `pip install pyinstaller'
 2. Change directory to repository directory
-3. Run `pyinstaller shimadzu-rearray-generator.spec shimadzu-rearray-generator.py`
-4. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
-5. A `dist` directory will be produced that can be deployed to customers.
+3. [`edit file_version_info.txt` with version number etc] 
+4. Run `shimadzu-rearray-generator.py --add-data "shimadzu_adapter_coordinates.csv;." --version-file file_version_info.txt`
+5. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
+6. A `dist` directory will be produced that can be deployed to customers.
 
 
 ## For Users
