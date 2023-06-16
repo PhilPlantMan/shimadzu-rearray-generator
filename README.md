@@ -2,10 +2,14 @@
 
 # PIXL Rearray Generator for the Shimadzu MALDI-TOF microbial ID workflow
 
-This python program generates a PIXL rearray file for a Shimadzu MALDI-TOF microbial ID workflow.
+This python program generates a PIXL 'rearray file' for a Shimadzu MALDI-TOF microbial ID workflow.
+
+
 
 Users are presented with a GUI which allows them to select a Colony Detection folder
-produced by PIXL and select workflow options such as starting position on the target, matrix location on a multiwell plate and whether they would also wish to pin to a separate multiwell plate for downstream culturing or other uses.
+produced by PIXL and select workflow options such as starting position on the target, 
+matrix location on a multiwell plate and whether they would also wish to pin to a separate 
+multiwell plate for downstream culturing or other uses.
 
 ![](docs/images/app_screenshot.png)
 
@@ -14,6 +18,13 @@ The application exports a rearray file to the users chosen directory for use wit
 ## For Developers
 
 ### Implementation
+
+The purpose of this app is to generate 'rearray files' for PIXL which 
+can be used to instruct PIXL to prepare MALDI-ToF target plates (Shimadzu).
+Rearray files are PIXL and human readable comma/tab seperated files (CSVs/TSVs) 
+that instruct PIXL how to operate. For more information about rearray files, 
+please consult [PIXL Rearray guide.pdf](/docs/PIXL Rearray guide.pdf).
+
 
 The application utilizes TKinter as the GUI framework. Users are prompted to
 input the location of their Colony Detection project directory and specify
