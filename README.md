@@ -7,8 +7,8 @@ This python program generates a PIXL 'rearray file' for a Shimadzu MALDI-TOF mic
 
 
 Users are presented with a GUI which allows them to select a Colony Detection folder
-produced by PIXL and select workflow options such as starting position on the target, 
-matrix location on a multiwell plate and whether they would also wish to pin to a separate 
+produced by PIXL and select workflow options such as starting position on the target,
+matrix location on a multiwell plate and whether they would also wish to pin to a separate
 multiwell plate for downstream culturing or other uses.
 
 ![](docs/images/app_screenshot.png)
@@ -19,10 +19,10 @@ The application exports a rearray file to the users chosen directory for use wit
 
 ### Implementation
 
-The purpose of this app is to generate 'rearray files' for PIXL which 
+The purpose of this app is to generate 'rearray files' for PIXL which
 can be used to instruct PIXL to prepare MALDI-ToF target plates (Shimadzu).
-Rearray files are PIXL and human readable comma/tab seperated files (CSVs/TSVs) 
-that instruct PIXL how to operate. For more information about rearray files, 
+Rearray files are PIXL and human readable comma/tab seperated files (CSVs/TSVs)
+that instruct PIXL how to operate. For more information about rearray files,
 please consult [PIXL Rearray guide.pdf](/docs/PIXL Rearray guide.pdf).
 
 
@@ -83,7 +83,7 @@ A distribution is created within CMD:
 
 1. Install pyinstaller: `pip install pyinstaller'
 2. Change directory to repository directory
-3. [`edit file_version_info.txt` with version number etc] 
+3. [`edit file_version_info.txt` with version number etc]
 4. Run `shimadzu-rearray-generator.py --add-data "shimadzu_adapter_coordinates.csv;." --version-file file_version_info.txt`
 5. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
 6. A `dist` directory will be produced that can be deployed to customers.
@@ -91,6 +91,8 @@ A distribution is created within CMD:
 
 ## For Users
 ### Usage
+
+Under construction. Add link to user guide
 
 1. Run the file `shimadzu-rearray-generator.exe`
 2. Select the Colony Detection project folder by clicking the "Browse" button.
