@@ -10,6 +10,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 import re
+import glob
 
 
 ####### GUI methods #######
@@ -70,8 +71,8 @@ def update_start_position_options(*args):
 ####### File system methods #######
 # Function to read the stub tsv file and return a DataFrame
 def read_stub_tsv(path):
-    basename = os.path.basename(path)
-    arrayPath = os.path.join(path, basename+"_RearrayTemplate.tsv")
+    files = [f for f in os.listdir(path) if re.match('.*_RearrayTemplate.tsv', f)]
+    arrayPath = os.path.join(path, files[0])
     df = pd.read_csv(arrayPath, sep = '\t', header = None, names = ["source", "sourceRow", "sourceCol", "target"])
     return df
 
