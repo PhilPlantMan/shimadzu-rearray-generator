@@ -236,23 +236,23 @@ def append_additional_target_to_array(pixl_array):
 
     numAdditionalTargetPlates = 1
     target_positions = array_lister(format_var.get())
-    target_slide_list = [numAdditionalTargetPlates] * len(target_positions)
     targetPositionIndex = target_positions.index(start_position_var.get())
-
     target_positions = target_positions[targetPositionIndex:]
+    target_plates_list = [numAdditionalTargetPlates] * len(target_positions)
+
     pixl_array = addAdditionalTargetDefinition(numAdditionalTargetPlates, pixl_array)
 
     while len(target_positions) < stub_df.shape[0]:
        numAdditionalTargetPlates += 1
        new_positions = array_lister(format_var.get())
        target_positions.extend(new_positions)
-       target_slide_list.extend([numAdditionalTargetPlates] * len(new_positions))
+       target_plates_list.extend([numAdditionalTargetPlates] * len(new_positions))
        pixl_array = addAdditionalTargetDefinition(numAdditionalTargetPlates, pixl_array)
 
     #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
     for index, row in stub_df.iterrows():
         if index == 0: continue
-        targetPlateID = "AdditionalMWPTarget{}".format(target_slide_list[index - 1])
+        targetPlateID = "AdditionalMWPTarget{}".format(target_plates_list[index - 1])
         target_position = target_positions[index - 1]
         target_row = target_position[0]  # Extract the first character
         target_col = int(target_position[1:])
