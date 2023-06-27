@@ -160,7 +160,7 @@ def get_export_directory():
 ####### Generating Rearry methods #######
 
 # Prepare a dataframe containing the plate definitions
-def prepare_pixl_array(stub_df):
+def prepare_pixl_array():
     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
     s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : 96, 'target': "Source"})
     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
@@ -171,8 +171,14 @@ def prepare_pixl_array(stub_df):
     return pixlArray_df
 
 # Append PIXL  colony and matrix commands to the array
-def append_pixl_commands_to_array(prepared_array, stub_df):
-    shimadzuAdapterIndex = shimadzuAdapterCoords_df[shimadzuAdapterCoords_df["wellID"]== wellID_dropdown.get()].index.values
+def append_pixl_commands_to_array(prepared_array):
+    shimadzuAdapterIndex = int(shimadzuAdapterCoords_df[shimadzuAdapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    availableAdapterPositions = shimadzuAdapterCoords_df.shape[0] - shimadzuAdapterIndex
+    global stub_df
+    if availableAdapterPositions < stub_df.shape[0]:
+        output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
+        stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
+        stub_df = stub_df_subset
     for index, row in stub_df.iterrows():
         if index == 0: continue
         shimadzuAdapterRow = shimadzuAdapterCoords_df.iloc[shimadzuAdapterIndex,:]
@@ -208,37 +214,50 @@ def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
     return prepared_array
 
 # Trigger all methods required to make array and export to user defined directory
-def export_pixl_array(stub_df):
-    global pixl_array
-    pixl_array = prepare_pixl_array(stub_df)
-    pixl_array = append_pixl_commands_to_array(pixl_array, stub_df)
+def export_pixl_array():
+    pixl_array = prepare_pixl_array()
+    pixl_array = append_pixl_commands_to_array(pixl_array)
 
     if additional_options_var.get() == 1:
-        pixl_array = append_additional_target_to_array(pixl_array, stub_df)
+        pixl_array = append_additional_target_to_array(pixl_array)
 
     project_name = os.path.basename(directory_entry.get())
     array_path = os.path.join(export_directory_entry.get(), project_name + "_MALDI_Rearray.csv")
     pixl_array.to_csv(array_path, header = False, index = False)
 
 # Function for addition target plate: prepend plate deinition and append PIXL commands
-def append_additional_target_to_array(pixl_array, stub_df):
-    targetPlateID = "AdditionalMWPTarget"
-    #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
-    target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : "MWP", 'sourceCol' : format_var.get(), 'target': "Target"})
+def append_additional_target_to_array(pixl_array):
 
-    pixl_array = pd.concat([target_definition.to_frame().T, pixl_array], ignore_index=True)
+    def addAdditionalTargetDefinition(plate_number, pixl_array):
+        targetPlateID = "AdditionalMWPTarget{}".format(plate_number)
+        target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : "MWP", 'sourceCol' : format_var.get(), 'target': "Target"})
+        pixl_array = pd.concat([target_definition.to_frame().T, pixl_array], ignore_index=True)
+        return(pixl_array)
+
+    numAdditionalTargetPlates = 1
     target_positions = array_lister(format_var.get())
-
+    target_slide_list = [numAdditionalTargetPlates] * len(target_positions)
     targetPositionIndex = target_positions.index(start_position_var.get())
 
+    target_positions = target_positions[targetPositionIndex:]
+    pixl_array = addAdditionalTargetDefinition(numAdditionalTargetPlates, pixl_array)
+
+    while len(target_positions) < stub_df.shape[0]:
+       numAdditionalTargetPlates += 1
+       new_positions = array_lister(format_var.get())
+       target_positions.extend(new_positions)
+       target_slide_list.extend([numAdditionalTargetPlates] * len(new_positions))
+       pixl_array = addAdditionalTargetDefinition(numAdditionalTargetPlates, pixl_array)
+
+    #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
     for index, row in stub_df.iterrows():
         if index == 0: continue
-        target_position = target_positions[targetPositionIndex]
+        targetPlateID = "AdditionalMWPTarget{}".format(target_slide_list[index - 1])
+        target_position = target_positions[index - 1]
         target_row = target_position[0]  # Extract the first character
         target_col = int(target_position[1:])
         targetSeries = pd.Series({"source": row['source'],"sourceRow": row['sourceRow'],"sourceCol": row['sourceCol'], "target": targetPlateID,"targetRow": target_row ,"targetCol": target_col})
         pixl_array = pd.concat([pixl_array, targetSeries.to_frame().T], ignore_index=True)
-        targetPositionIndex += 1
     return pixl_array
 
 
@@ -262,8 +281,9 @@ def array_lister(array_format):
 def run():
     validCDPath = validate_stub_path()
     if validCDPath:
+        global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
-        export_pixl_array(stub_df)
+        export_pixl_array()
         output_text.insert(tk.END, "Success! PIXL rearry file exported")
         update_config_all()
         output_text.insert(tk.END, "\n")
