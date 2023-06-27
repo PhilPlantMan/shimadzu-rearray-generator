@@ -176,7 +176,7 @@ def append_pixl_commands_to_array(prepared_array):
     availableAdapterPositions = shimadzuAdapterCoords_df.shape[0] - shimadzuAdapterIndex
     global stub_df
     if availableAdapterPositions < stub_df.shape[0]:
-        output_text.insert(tk.END, "There are more colonies that target positions. Excess colonies will be ignored. \n")
+        output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
         stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
         stub_df = stub_df_subset
     for index, row in stub_df.iterrows():
@@ -227,23 +227,37 @@ def export_pixl_array():
 
 # Function for addition target plate: prepend plate deinition and append PIXL commands
 def append_additional_target_to_array(pixl_array):
-    targetPlateID = "AdditionalMWPTarget"
-    #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
-    target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : "MWP", 'sourceCol' : format_var.get(), 'target': "Target"})
 
-    pixl_array = pd.concat([target_definition.to_frame().T, pixl_array], ignore_index=True)
+    def addAdditionalTargetDefinition(plate_number, pixl_array):
+        targetPlateID = "AdditionalMWPTarget{}".format(plate_number)
+        target_definition = pd.Series({"source" : targetPlateID, 'sourceRow' : "MWP", 'sourceCol' : format_var.get(), 'target': "Target"})
+        pixl_array = pd.concat([target_definition.to_frame().T, pixl_array], ignore_index=True)
+        return(pixl_array)
+
+    numAdditionalTargetPlates = 1
     target_positions = array_lister(format_var.get())
-
+    target_slide_list = [numAdditionalTargetPlates] * len(target_positions)
     targetPositionIndex = target_positions.index(start_position_var.get())
 
+    target_positions = target_positions[targetPositionIndex:]
+    pixl_array = addAdditionalTargetDefinition(numAdditionalTargetPlates, pixl_array)
+
+    while len(target_positions) < stub_df.shape[0]:
+       numAdditionalTargetPlates += 1
+       new_positions = array_lister(format_var.get())
+       target_positions.extend(new_positions)
+       target_slide_list.extend([numAdditionalTargetPlates] * len(new_positions))
+       pixl_array = addAdditionalTargetDefinition(numAdditionalTargetPlates, pixl_array)
+
+    #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
     for index, row in stub_df.iterrows():
         if index == 0: continue
-        target_position = target_positions[targetPositionIndex]
+        targetPlateID = "AdditionalMWPTarget{}".format(target_slide_list[index - 1])
+        target_position = target_positions[index - 1]
         target_row = target_position[0]  # Extract the first character
         target_col = int(target_position[1:])
         targetSeries = pd.Series({"source": row['source'],"sourceRow": row['sourceRow'],"sourceCol": row['sourceCol'], "target": targetPlateID,"targetRow": target_row ,"targetCol": target_col})
         pixl_array = pd.concat([pixl_array, targetSeries.to_frame().T], ignore_index=True)
-        targetPositionIndex += 1
     return pixl_array
 
 
