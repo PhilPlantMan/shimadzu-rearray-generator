@@ -10,7 +10,8 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 import re
-import glob
+import shutil
+
 
 
 ####### GUI methods #######
@@ -115,6 +116,7 @@ def createConfig():
     }
 
     config_file = os.path.join(dirPath,"config.txt")
+
 
     try:
         with open(config_file, "w") as file:
@@ -277,6 +279,14 @@ def array_lister(array_format):
             well_positions.append("{}{}".format(chr(65 + row), col + 1))
     return well_positions
 
+def upload_pinning_profile():
+    profile_src_path = os.path.join(os.path.abspath("."),"MALDITOF-PINNING-PROFILE.xml")
+    profile_dest_path = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited",
+                                   "PIXL", "Pinning Profiles", "User",
+                                   "MALDITOF-PINNING-PROFILE.xml")
+    shutil.copy(profile_src_path, profile_dest_path)
+
 # Function called when 'Run' button pressed
 def run():
     validCDPath = validate_stub_path()
@@ -287,6 +297,7 @@ def run():
         output_text.insert(tk.END, "Success! PIXL rearry file exported")
         update_config_all()
         output_text.insert(tk.END, "\n")
+        upload_pinning_profile()
 
 
 ####### Main #######
