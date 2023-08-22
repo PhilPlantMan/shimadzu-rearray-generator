@@ -15,6 +15,12 @@ multiwell plate for downstream culturing or other uses.
 
 The application exports a rearray file to the users chosen directory for use with PIXL's Rearray mode.
 
+## For Users
+### Usage
+
+Please follow the following [link for a detailed protocol](https://singer-instruments.fibery.io/Science/White_Papers_and_application_notes/Preparing-Shimadzu-MALDI-ToF-targets-with-PIXL-for-microbial-identification-Method-1---Using-the-Shi-2?sharing-key=af833114-8cd2-4562-a0ea-2791ca9cb624) on how to prepare Shimadzu MALDI-TOF targets using PIXL.
+
+
 ## For Developers
 
 ### Implementation
@@ -90,15 +96,3 @@ A distribution is created within CMD:
 6. A `dist` directory will be produced that can be deployed to customers.
 
 
-## For Users
-### Usage
-
-Under construction. Add link to user guide
-
-1. Run the file `shimadzu-rearray-generator.exe`
-2. Select the Colony Detection project folder by clicking the "Browse" button.
-3. Enter the matrix reservoir position in the 96-well plate.
-4. Select the MALDI target position to start picking to.
-5. Select the matrix application mode (Single Dip or Double Dip).
-6. (Optional) Check the additional options checkbox to enable additional settings.
-7. Click the "Run" button to generate the PIXL rearray file.
