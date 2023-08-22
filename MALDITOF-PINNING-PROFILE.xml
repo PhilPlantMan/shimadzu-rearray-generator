@@ -1,0 +1,18 @@
+<PinningProfile Name="SHIMADZU-MALDITOF" Description="This profile contains the settings required for preparing MALDITOF slides. " CreationDate="06/30/2023 09:48:34" CreatedBy="PhilipKirk">
+  <Source>
+    <WetMix Speed="60" Acceleration="1000" Deceleration="1000" Radius="0.5" Angle="1080" Travel="0.5" Cycles="1" Use="False" />
+    <DryMix Speed="20" Acceleration="1000" Deceleration="1000" Radius="0.5" Smoothing="1" Travel="2.5" Cycles="1" Use="False" />
+    <WetPinning Speed="60" PinningNormalisedClearanceFromBottomOfWell="0.5" NozzleClearance="2" />
+    <DryPinning Speed="19" AgarPrePinningClearance="3.5" AgarPrePinningClearanceMode="ClearanceFromSurface" OffsetMode="None" PickupLineLength="9">
+      <Piercing Use="False" Speed="10" />
+    </DryPinning>
+  </Source>
+  <Target>
+    <WetMix UseSourceOptions="False" Speed="60" Acceleration="1000" Deceleration="1000" Radius="0.5" Angle="1080" Travel="0.1" Cycles="1" Use="True" />
+    <DryMix UseSourceOptions="False" Speed="20" Acceleration="1000" Deceleration="1000" Radius="0.5" Smoothing="1" Travel="0.05" Cycles="3" Use="True" />
+    <WetPinning UseSourceOptions="False" Speed="60" PinningNormalisedClearanceFromBottomOfWell="0.100000001490116" NozzleClearance="2" />
+    <DryPinning UseSourceOptions="True" Speed="19" AgarPrePinningClearance="3.5" AgarPrePinningClearanceMode="ClearanceFromSurface" PickupLineLength="9">
+      <Piercing Use="False" Speed="10" />
+    </DryPinning>
+  </Target>
+</PinningProfile>

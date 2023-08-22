@@ -84,7 +84,8 @@ A distribution is created within CMD:
 1. Install pyinstaller: `pip install pyinstaller'
 2. Change directory to repository directory
 3. [`edit file_version_info.txt` with version number etc]
-4. Run `shimadzu-rearray-generator.py --add-data "shimadzu_adapter_coordinates.csv;." --version-file file_version_info.txt`
+4. Run `pyinstaller shimadzu-rearray-generator.py --add-data "shimadzu_adapter_coordinates.csv;." --add-data "MALDITOF-PINNING-PROFILE.xml;." --version-file file_version_info.txt`
+`
 5. The `.spec` file defines, amongst other things, what other files are bundled with the distribution.
 6. A `dist` directory will be produced that can be deployed to customers.
 

@@ -8,7 +8,7 @@ a = Analysis(
     ['shimadzu-rearray-generator.py'],
     pathex=[],
     binaries=[],
-    datas=[('shimadzu_adapter_coordinates.csv', '.')],
+    datas=[('shimadzu_adapter_coordinates.csv', '.'), ('MALDITOF-PINNING-PROFILE.xml', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
