@@ -44,6 +44,8 @@ def show_additional_options():
         format_384_radiobutton.pack()
         start_position_label.pack()
         start_position_dropdown.pack()
+        adapter_label.pack()
+        adapter_dropdown.pack()
         export_directory_label.pack()
         export_directory_entry.pack()
         export_directory_button.pack()
@@ -174,8 +176,8 @@ def prepare_pixl_array():
 
 # Append PIXL  colony and matrix commands to the array
 def append_pixl_commands_to_array(prepared_array):
-    shimadzuAdapterIndex = int(shimadzuAdapterCoords_df[shimadzuAdapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    availableAdapterPositions = shimadzuAdapterCoords_df.shape[0] - shimadzuAdapterIndex
+    shimadzuAdapterIndex = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex
     global stub_df
     if availableAdapterPositions < stub_df.shape[0]:
         output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
@@ -183,7 +185,7 @@ def append_pixl_commands_to_array(prepared_array):
         stub_df = stub_df_subset
     for index, row in stub_df.iterrows():
         if index == 0: continue
-        shimadzuAdapterRow = shimadzuAdapterCoords_df.iloc[shimadzuAdapterIndex,:]
+        shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
         prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
         prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
         if (matrix_var.get() == "Double Dip"):
@@ -287,10 +289,19 @@ def upload_pinning_profile():
                                    "MALDITOF-PINNING-PROFILE.xml")
     shutil.copy(profile_src_path, profile_dest_path)
 
+def adapter_coordinates(user_adapter_choice):
+    global adapterCoords_df
+    if user_adapter_choice == 'Shimadzu Precision adapter':
+        adapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_Precision_adapter.csv"))
+    if user_adapter_choice == 'SI adapter':
+        adapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_SI_adapter.csv"))
+    adapterCoords_df["wellID"] = "Target " + adapterCoords_df["Plate"].map(str) + ", " + adapterCoords_df["Row"]+ adapterCoords_df["Column"].map(str)
+
 # Function called when 'Run' button pressed
 def run():
     validCDPath = validate_stub_path()
     if validCDPath:
+        adapter_coordinates(adapter_var.get())
         global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array()
@@ -302,7 +313,9 @@ def run():
 
 ####### Main #######
 
-shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates.csv"))
+# Regardless of which adapter is in use, this df is used to pull the wellIDs
+# for the GUI.
+shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
 
 
@@ -372,6 +385,16 @@ start_position_var = tk.StringVar(root)
 target_positions = array_lister(format_var.get())
 start_position_var.set(target_positions[0])  # Default selection
 start_position_dropdown = tk.OptionMenu(root, start_position_var, *target_positions)
+
+
+# Start Position Selection
+adapter_label = tk.Label(root, text="Select adapter (default is Shimadzu Precision adapter)")
+adapter_label.pack()
+adapter_var = tk.StringVar(root)
+adapter_options = ['Shimadzu Precision adapter', 'SI adapter']
+adapter_var.set(adapter_options[0])  # Default selection
+adapter_dropdown = tk.OptionMenu(root, adapter_var, *adapter_options)
+adapter_dropdown.pack()
 
 # Create a label and entry for directory selection for export
 export_directory_label = tk.Label(root, text="Select a PIXL rearray export directory:")
