@@ -88,34 +88,12 @@ def validate_stub_path():
     else: output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
     return validCDPath
 
-# Function to read a variable from the config.txt file stored in Appdata
-def read_config_variable(variable_name):
-    config_file = os.path.join(os.getenv('APPDATA'),
-                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
-    try:
-        with open(config_file, "r") as file:
-            for line in file:
-                if line.startswith(variable_name):
-                    export_directory = line.split("=")[1].strip()
-                    return export_directory
-
-    except FileNotFoundError:
-        createConfig()
-        return None
-
 # Function to create a generic config.txt to store user choices
 def createConfig():
     dirPath = os.path.join(os.getenv('APPDATA'),
                                "Singer Instrument Company Limited\PIXL_MALDI_Rearray")
     if not os.path.isdir(dirPath):
         os.makedirs(dirPath)
-
-    template_variables = {
-    "rearry_export_directory": "desktop",
-    "first_target_position": "Target 1, A1",
-    "matrix_application_mode": "Double Dip",
-    "matrix_position": "A1"
-    }
 
     config_file = os.path.join(dirPath,"config.txt")
 
@@ -127,6 +105,36 @@ def createConfig():
 
     except Exception as e:
         print(f"Error: Failed to create config template. {str(e)}")
+
+# Function to add any missing varibales in config.txt file stored in Appdata
+# This is required as any updates to the software need to account for new
+# missing variables in the original config
+def add_missing_config_variable(variable_name):
+    config_file = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
+    try:
+        with open(config_file, 'a') as file:
+            file.write(f"{variable_name} = {template_variables[variable_name]}\n")
+
+    except Exception as e:
+        print(f"Error: Failed to append to config. {str(e)}")
+
+# Function to read a variable from the config.txt file stored in Appdata
+def read_config_variable(variable_name):
+    config_file = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
+    try:
+        with open(config_file, "r") as file:
+            for line in file:
+                if line.startswith(variable_name):
+                    value = line.split("=")[1].strip()
+                    return value
+        add_missing_config_variable(variable_name)
+        return(template_variables[variable_name])
+
+    except FileNotFoundError:
+        createConfig()
+        return None
 
 # Function to update a variable from config.txt
 def update_config_variable(variable_name, new_value):
@@ -153,6 +161,7 @@ def update_config_all():
     update_config_variable("first_target_position", wellID_dropdown.get())
     update_config_variable("matrix_application_mode", matrix_var.get())
     update_config_variable("rearry_export_directory", export_directory_entry.get())
+    update_config_variable("adapter_option", adapter_var.get())
 
 # Function to get the export directory from the config.txt file
 def get_export_directory():
@@ -318,6 +327,14 @@ def run():
 shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
 
+# Dictionary of variables that are cached in config.txt with default values
+template_variables = {
+"rearry_export_directory": "desktop",
+"first_target_position": "Target 1, A1",
+"matrix_application_mode": "Double Dip",
+"matrix_position": "A1",
+"adapter_option": "Shimadzu Precision adapter"
+}
 
 #################  GUI code  #############################
 
@@ -387,12 +404,12 @@ start_position_var.set(target_positions[0])  # Default selection
 start_position_dropdown = tk.OptionMenu(root, start_position_var, *target_positions)
 
 
-# Start Position Selection
+# Adapter Selection
 adapter_label = tk.Label(root, text="Select adapter (default is Shimadzu Precision adapter)")
 adapter_label.pack()
 adapter_var = tk.StringVar(root)
 adapter_options = ['Shimadzu Precision adapter', 'SI adapter']
-adapter_var.set(adapter_options[0])  # Default selection
+adapter_var.set(read_config_variable("adapter_option"))  # Default selection
 adapter_dropdown = tk.OptionMenu(root, adapter_var, *adapter_options)
 adapter_dropdown.pack()
 
