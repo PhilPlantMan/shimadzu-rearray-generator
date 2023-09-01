@@ -175,12 +175,16 @@ def get_export_directory():
 # Prepare a dataframe containing the plate definitions
 def prepare_pixl_array():
     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-    s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : 96, 'target': "Source"})
+    s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
     firstStubRow = stub_df.iloc[0,:]
+    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-50", 'sourceCol' : "-70", 'target': ""})
+    s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-50", 'sourceCol' : "-70", 'target': ""})
     pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
 
 # Append PIXL  colony and matrix commands to the array
@@ -213,16 +217,13 @@ def append_colony_transfer(prepared_array, stubRow, shimadzuAdapterRow):
 # Append a matrix transfer command to the array
 def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
 
-    match = re.match(r"([a-z]+)([0-9]+)", well_var.get(), re.I)
-    if match:
-        items = match.groups()
-        matrixRow = items[0]
-        matrixCol = items[1]
+    matrix_cartesian_x = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianX"].item()
+    matrix_cartesian_y = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianY"].item()
 
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "matrixMWP","sourceRow": matrixRow,"sourceCol": matrixCol, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "matrixMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
@@ -326,6 +327,9 @@ def run():
 # for the GUI.
 shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
+
+matrix_multiwell_df = pd.read_csv(os.path.join(os.path.abspath("."),"thermo_nunc_96_coordinates.csv"))
+
 
 # Dictionary of variables that are cached in config.txt with default values
 template_variables = {
