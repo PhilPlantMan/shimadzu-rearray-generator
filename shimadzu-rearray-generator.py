@@ -44,6 +44,8 @@ def show_additional_options():
         format_384_radiobutton.pack()
         start_position_label.pack()
         start_position_dropdown.pack()
+        adapter_label.pack()
+        adapter_dropdown.pack()
         export_directory_label.pack()
         export_directory_entry.pack()
         export_directory_button.pack()
@@ -86,34 +88,12 @@ def validate_stub_path():
     else: output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
     return validCDPath
 
-# Function to read a variable from the config.txt file stored in Appdata
-def read_config_variable(variable_name):
-    config_file = os.path.join(os.getenv('APPDATA'),
-                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
-    try:
-        with open(config_file, "r") as file:
-            for line in file:
-                if line.startswith(variable_name):
-                    export_directory = line.split("=")[1].strip()
-                    return export_directory
-
-    except FileNotFoundError:
-        createConfig()
-        return None
-
 # Function to create a generic config.txt to store user choices
 def createConfig():
     dirPath = os.path.join(os.getenv('APPDATA'),
                                "Singer Instrument Company Limited\PIXL_MALDI_Rearray")
     if not os.path.isdir(dirPath):
         os.makedirs(dirPath)
-
-    template_variables = {
-    "rearry_export_directory": "desktop",
-    "first_target_position": "Target 1, A1",
-    "matrix_application_mode": "Double Dip",
-    "matrix_position": "A1"
-    }
 
     config_file = os.path.join(dirPath,"config.txt")
 
@@ -125,6 +105,36 @@ def createConfig():
 
     except Exception as e:
         print(f"Error: Failed to create config template. {str(e)}")
+
+# Function to add any missing varibales in config.txt file stored in Appdata
+# This is required as any updates to the software need to account for new
+# missing variables in the original config
+def add_missing_config_variable(variable_name):
+    config_file = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
+    try:
+        with open(config_file, 'a') as file:
+            file.write(f"{variable_name} = {template_variables[variable_name]}\n")
+
+    except Exception as e:
+        print(f"Error: Failed to append to config. {str(e)}")
+
+# Function to read a variable from the config.txt file stored in Appdata
+def read_config_variable(variable_name):
+    config_file = os.path.join(os.getenv('APPDATA'),
+                                   "Singer Instrument Company Limited\PIXL_MALDI_Rearray","config.txt")
+    try:
+        with open(config_file, "r") as file:
+            for line in file:
+                if line.startswith(variable_name):
+                    value = line.split("=")[1].strip()
+                    return value
+        add_missing_config_variable(variable_name)
+        return(template_variables[variable_name])
+
+    except FileNotFoundError:
+        createConfig()
+        return None
 
 # Function to update a variable from config.txt
 def update_config_variable(variable_name, new_value):
@@ -151,6 +161,7 @@ def update_config_all():
     update_config_variable("first_target_position", wellID_dropdown.get())
     update_config_variable("matrix_application_mode", matrix_var.get())
     update_config_variable("rearry_export_directory", export_directory_entry.get())
+    update_config_variable("adapter_option", adapter_var.get())
 
 # Function to get the export directory from the config.txt file
 def get_export_directory():
@@ -164,18 +175,22 @@ def get_export_directory():
 # Prepare a dataframe containing the plate definitions
 def prepare_pixl_array():
     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-    s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : 96, 'target': "Source"})
+    s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
     firstStubRow = stub_df.iloc[0,:]
+    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-50", 'sourceCol' : "-70", 'target': ""})
+    s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-50", 'sourceCol' : "-70", 'target': ""})
     pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
 
 # Append PIXL  colony and matrix commands to the array
 def append_pixl_commands_to_array(prepared_array):
-    shimadzuAdapterIndex = int(shimadzuAdapterCoords_df[shimadzuAdapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    availableAdapterPositions = shimadzuAdapterCoords_df.shape[0] - shimadzuAdapterIndex
+    shimadzuAdapterIndex = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex
     global stub_df
     if availableAdapterPositions < stub_df.shape[0]:
         output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
@@ -183,7 +198,7 @@ def append_pixl_commands_to_array(prepared_array):
         stub_df = stub_df_subset
     for index, row in stub_df.iterrows():
         if index == 0: continue
-        shimadzuAdapterRow = shimadzuAdapterCoords_df.iloc[shimadzuAdapterIndex,:]
+        shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
         prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
         prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
         if (matrix_var.get() == "Double Dip"):
@@ -202,16 +217,13 @@ def append_colony_transfer(prepared_array, stubRow, shimadzuAdapterRow):
 # Append a matrix transfer command to the array
 def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
 
-    match = re.match(r"([a-z]+)([0-9]+)", well_var.get(), re.I)
-    if match:
-        items = match.groups()
-        matrixRow = items[0]
-        matrixCol = items[1]
+    matrix_cartesian_x = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianX"].item()
+    matrix_cartesian_y = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianY"].item()
 
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "matrixMWP","sourceRow": matrixRow,"sourceCol": matrixCol, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "matrixMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
@@ -287,10 +299,19 @@ def upload_pinning_profile():
                                    "MALDITOF-PINNING-PROFILE.xml")
     shutil.copy(profile_src_path, profile_dest_path)
 
+def adapter_coordinates(user_adapter_choice):
+    global adapterCoords_df
+    if user_adapter_choice == 'Shimadzu Precision adapter':
+        adapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_Precision_adapter.csv"))
+    if user_adapter_choice == 'SI adapter':
+        adapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_SI_adapter.csv"))
+    adapterCoords_df["wellID"] = "Target " + adapterCoords_df["Plate"].map(str) + ", " + adapterCoords_df["Row"]+ adapterCoords_df["Column"].map(str)
+
 # Function called when 'Run' button pressed
 def run():
     validCDPath = validate_stub_path()
     if validCDPath:
+        adapter_coordinates(adapter_var.get())
         global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array()
@@ -302,9 +323,22 @@ def run():
 
 ####### Main #######
 
-shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates.csv"))
+# Regardless of which adapter is in use, this df is used to pull the wellIDs
+# for the GUI.
+shimadzuAdapterCoords_df = pd.read_csv(os.path.join(os.path.abspath("."),"shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
 
+matrix_multiwell_df = pd.read_csv(os.path.join(os.path.abspath("."),"thermo_nunc_96_coordinates.csv"))
+
+
+# Dictionary of variables that are cached in config.txt with default values
+template_variables = {
+"rearry_export_directory": "desktop",
+"first_target_position": "Target 1, A1",
+"matrix_application_mode": "Double Dip",
+"matrix_position": "A1",
+"adapter_option": "Shimadzu Precision adapter"
+}
 
 #################  GUI code  #############################
 
@@ -372,6 +406,16 @@ start_position_var = tk.StringVar(root)
 target_positions = array_lister(format_var.get())
 start_position_var.set(target_positions[0])  # Default selection
 start_position_dropdown = tk.OptionMenu(root, start_position_var, *target_positions)
+
+
+# Adapter Selection
+adapter_label = tk.Label(root, text="Select adapter (default is Shimadzu Precision adapter)")
+adapter_label.pack()
+adapter_var = tk.StringVar(root)
+adapter_options = ['Shimadzu Precision adapter', 'SI adapter']
+adapter_var.set(read_config_variable("adapter_option"))  # Default selection
+adapter_dropdown = tk.OptionMenu(root, adapter_var, *adapter_options)
+adapter_dropdown.pack()
 
 # Create a label and entry for directory selection for export
 export_directory_label = tk.Label(root, text="Select a PIXL rearray export directory:")
