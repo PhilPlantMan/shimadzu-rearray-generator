@@ -178,8 +178,8 @@ def prepare_pixl_array():
     s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
     firstStubRow = stub_df.iloc[0,:]
-    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-50", 'sourceCol' : "-70", 'target': ""})
-    s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-50", 'sourceCol' : "-70", 'target': ""})
+    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
+    s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
     pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
@@ -355,16 +355,14 @@ directory_entry.pack()
 directory_button = tk.Button(root, text="Browse", command=select_CD_directory)
 directory_button.pack()
 
-# Create a label and entry for well input
-well_label = tk.Label(root, text="Enter matrix reservoir position in 96 well plate  e.g. A1:")
-well_label.pack()
-
-# Create the dropdown using the well positions as options
-well_positions = array_lister("96")
-well_var = tk.StringVar(root)
-well_var.set(read_config_variable("matrix_position"))  # Default selection
-well_dropdown = tk.OptionMenu(root, well_var, *well_positions)
-well_dropdown.pack()
+# Adapter Selection
+adapter_label = tk.Label(root, text="Select adapter (default is Shimadzu Precision adapter)")
+adapter_label.pack()
+adapter_var = tk.StringVar(root)
+adapter_options = ['Shimadzu Precision adapter', 'SI adapter']
+adapter_var.set(read_config_variable("adapter_option"))  # Default selection
+adapter_dropdown = tk.OptionMenu(root, adapter_var, *adapter_options)
+adapter_dropdown.pack()
 
 # Create a dropdown for wellID selection
 wellID_label = tk.Label(root, text="Select MALDI target postion to start picking to:")
@@ -376,6 +374,17 @@ wellID_dropdown = tk.StringVar(root)
 wellID_dropdown.set(read_config_variable("first_target_position"))  # Default selection
 wellID_optionmenu = tk.OptionMenu(root, wellID_dropdown, *wellIDs)
 wellID_optionmenu.pack()
+
+# Create a label and entry for well input
+well_label = tk.Label(root, text="Enter matrix reservoir position in 96 well plate  e.g. A1:")
+well_label.pack()
+
+# Create the dropdown using the well positions as options
+well_positions = array_lister("96")
+well_var = tk.StringVar(root)
+well_var.set(read_config_variable("matrix_position"))  # Default selection
+well_dropdown = tk.OptionMenu(root, well_var, *well_positions)
+well_dropdown.pack()
 
 # Create radio buttons for matrix type
 matrix_label = tk.Label(root, text="Matrix application mode:")
@@ -406,16 +415,6 @@ start_position_var = tk.StringVar(root)
 target_positions = array_lister(format_var.get())
 start_position_var.set(target_positions[0])  # Default selection
 start_position_dropdown = tk.OptionMenu(root, start_position_var, *target_positions)
-
-
-# Adapter Selection
-adapter_label = tk.Label(root, text="Select adapter (default is Shimadzu Precision adapter)")
-adapter_label.pack()
-adapter_var = tk.StringVar(root)
-adapter_options = ['Shimadzu Precision adapter', 'SI adapter']
-adapter_var.set(read_config_variable("adapter_option"))  # Default selection
-adapter_dropdown = tk.OptionMenu(root, adapter_var, *adapter_options)
-adapter_dropdown.pack()
 
 # Create a label and entry for directory selection for export
 export_directory_label = tk.Label(root, text="Select a PIXL rearray export directory:")
