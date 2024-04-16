@@ -6,8 +6,8 @@ VSVersionInfo(
   ffi=FixedFileInfo(
 # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
 # Set not needed items to zero 0.
-filevers=(0, 0, 1, 6),
-prodvers=(0, 0, 1, 6),
+filevers=(0, 0, 1, 7),
+prodvers=(0, 0, 1, 7),
 # Contains a bitmask that specifies the valid bits 'flags'r
 mask=0x3f,
 # Contains a bitmask that specifies the Boolean attributes of the file.
@@ -32,7 +32,7 @@ StringFileInfo(
     [StringStruct(u'CompanyName', u'Singer Instruments'),
     StringStruct(u'LegalCopyright', u'Copyright (c) Singer Instruments Limited'),
     StringStruct(u'ProductName', u'PIXL MALDI-ToF rearray generator'),
-    StringStruct(u'ProductVersion', u'0.1.6')])
+    StringStruct(u'ProductVersion', u'0.1.7')])
   ]), 
 VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]

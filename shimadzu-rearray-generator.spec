@@ -8,7 +8,7 @@ a = Analysis(
     ['shimadzu-rearray-generator.py'],
     pathex=[],
     binaries=[],
-    datas=[('shimadzu_adapter_coordinates_Precision_adapter.csv', '.'), ('MALDITOF-PINNING-PROFILE.xml', '.'), ('shimadzu_adapter_coordinates_SI_adapter.csv', '.'), ('thermo_nunc_96_coordinates.csv', '.')],
+    datas=[('shimadzu_adapter_coordinates_Precision_adapter.csv', '.'), ('MALDITOF-PINNING-PROFILE.xml', '.'), ('shimadzu_adapter_coordinates_SI_adapter.csv', '.'), ('thermo_nunc_96_coordinates.csv', '.'), ('icon.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -37,7 +37,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='file_version_info.txt',
+    version='file_version_info.txt`',
 )
 coll = COLLECT(
     exe,
