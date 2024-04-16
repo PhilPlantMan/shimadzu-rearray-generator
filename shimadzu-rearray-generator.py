@@ -8,7 +8,7 @@ Created on Fri May 26 10:02:25 2023
 import pandas as pd
 import os
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, scrolledtext
 import re
 import shutil
 
@@ -192,7 +192,7 @@ def append_pixl_commands_to_array(prepared_array):
     shimadzuAdapterIndex = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
     availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex
     global stub_df
-    if availableAdapterPositions < stub_df.shape[0]:
+    if availableAdapterPositions < stub_df.shape[0]-1:
         output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
         stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
         stub_df = stub_df_subset
@@ -292,11 +292,13 @@ def array_lister(array_format):
     return well_positions
 
 def upload_pinning_profile():
-    profile_src_path = os.path.join(os.path.abspath("."),"MALDITOF-PINNING-PROFILE.xml")
     profile_dest_path = os.path.join(os.getenv('APPDATA'),
-                                   "Singer Instrument Company Limited",
-                                   "PIXL", "Pinning Profiles", "User",
-                                   "MALDITOF-PINNING-PROFILE.xml")
+                                     "Singer Instrument Company Limited",
+                                     "PIXL", "Pinning Profiles", "User",
+                                     "MALDITOF-PINNING-PROFILE.xml")
+    if os.path.exists(profile_dest_path) == False:
+        output_text.insert(tk.END, "\nNo Pinning profile detected. One has been created.\nPlease restart PIXL (You should only see this prompt on the first time running this app)\n")
+    profile_src_path = os.path.join(os.path.abspath("."),"MALDITOF-PINNING-PROFILE.xml")
     shutil.copy(profile_src_path, profile_dest_path)
 
 def adapter_coordinates(user_adapter_choice):
@@ -315,7 +317,7 @@ def run():
         global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array()
-        output_text.insert(tk.END, "Success! PIXL rearry file exported")
+        output_text.insert(tk.END, "Success! PIXL rearry file exported\n")
         update_config_all()
         output_text.insert(tk.END, "\n")
         upload_pinning_profile()
@@ -344,6 +346,7 @@ template_variables = {
 
 root = tk.Tk()
 root.title("PIXL rearray generator for Shimadzu MALDI-TOF")  # Set the title of the GUI window
+root.iconbitmap(os.path.join(os.path.abspath("."),"icon.ico"))
 
 # Create a label and entry for directory selection
 directory_label = tk.Label(root, text="Select Colony Detection project folder:")
@@ -434,7 +437,7 @@ run_button.pack()
 # Create an output box
 output_label = tk.Label(root, text="Output:")
 output_label.pack()
-output_text = tk.Text(root, width=50, height=10)
+output_text = tk.scrolledtext.ScrolledText(root, width=50, height=10)
 output_text.pack()
 
 root.mainloop()
