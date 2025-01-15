@@ -14,8 +14,6 @@ import shutil
 import sys
 from tkinter.filedialog import askdirectory
 
-
-
 ####### GUI methods #######
 # Function to handle the selection of the Colony Detection directory
 def select_CD_directory():
@@ -32,43 +30,13 @@ def select_export_directory():
     export_directory_entry.delete(0, tk.END)  # Clear the existing entry
     export_directory_entry.insert(tk.END, directory)
 
-# Function to show/hide additional options based on the checkbox state
-# def show_additional_options():
-#     if additional_options_var.get() == 1:
-#         export_directory_label.pack_forget()
-#         export_directory_entry.pack_forget()
-#         export_directory_button.pack_forget()
-#         run_button.pack_forget()
-#         output_label.pack_forget()
-#         output_text.pack_forget()
-#         format_label.pack()
-#         format_96_radiobutton.pack()
-#         format_384_radiobutton.pack()
-#         start_position_label.pack()
-#         start_position_dropdown.pack()
-#         adapter_label.pack()
-#         adapter_dropdown.pack()
-#         export_directory_label.pack()
-#         export_directory_entry.pack()
-#         export_directory_button.pack()
-#         run_button.pack()
-#         output_label.pack()
-#         output_text.pack()
-#         format_var.trace('w', update_start_position_options)
-#     else:
-#         # Hide additional options
-#         format_label.pack_forget()
-#         format_96_radiobutton.pack_forget()
-#         format_384_radiobutton.pack_forget()
-#         start_position_label.pack_forget()
-#         start_position_dropdown.pack_forget()
 
-def toggle_additional_options():
-    state = "normal" if additional_options_var.get() else "disabled"
-    for child in additional_frame.winfo_children():
-        # Only configure widgets other than the Checkbutton
-        if child != additional_options_checkbutton and isinstance(child, (ttk.Entry, ttk.Button, ttk.OptionMenu, ttk.Radiobutton)):
-            child.configure(state=state)
+# def toggle_additional_options():
+#     state = "normal" if additional_options_var.get() else "disabled"
+#     for child in additional_frame.winfo_children():
+#         # Only configure widgets other than the Checkbutton
+#         if child != additional_options_checkbutton and isinstance(child, (ttk.Entry, ttk.Button, ttk.OptionMenu, ttk.Radiobutton)):
+#             child.configure(state=state)
 
 
 
@@ -182,6 +150,8 @@ def update_config_all():
     update_config_variable("matrix_position", well_var.get())
     update_config_variable("matrix_application_mode", matrix_var.get())
 
+    update_config_variable("additional_plate_enable", additional_plate_enabled_var.get())
+
     update_config_variable("rearry_export_directory", export_directory_entry.get())
     
 
@@ -256,7 +226,7 @@ def export_pixl_array():
     pixl_array = prepare_pixl_array()
     pixl_array = append_pixl_commands_to_array(pixl_array)
 
-    if additional_options_var.get() == 1:
+    if additional_plate_enabled_var.get() == 1:
         pixl_array = append_additional_target_to_array(pixl_array)
 
     project_name = os.path.basename(directory_entry.get())
@@ -274,7 +244,7 @@ def append_additional_target_to_array(pixl_array):
 
     numAdditionalTargetPlates = 1
     target_positions = array_lister(format_var.get())
-    targetPositionIndex = target_positions.index(start_position_var.get())
+    targetPositionIndex = target_positions.index(additional_well_var.get())
     target_positions = target_positions[targetPositionIndex:]
     target_plates_list = [numAdditionalTargetPlates] * len(target_positions)
 
@@ -348,6 +318,7 @@ def run():
         wellID_dropdown.set(target_string_new)
         formic_well_var.set(formic_well_row_selection.get()+str(formic_well_col_selection.get()))
         well_var.set(well_row_selection.get()+str(well_col_selection.get()))
+        additional_well_var.set(additional_well_row_selection.get()+str(additional_well_col_selection.get()))
         adapter_coordinates(adapter_var.get())
         global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
@@ -388,6 +359,7 @@ template_variables = {
 "matrix_enable" : "0",
 "matrix_position": "A1",
 "matrix_application_mode": "Double Dip",
+"additional_plate_enable" : "0",
 "adapter_option": "Shimadzu Precision adapter",
 
 }
@@ -609,8 +581,9 @@ notebook.add(additional_frame, text="Optional: Additional target(s)")
 
 
 # Checkbox to enable/disable additional options
-additional_options_var = tk.IntVar()
-additional_options_checkbutton = ttk.Checkbutton(additional_frame, text="Enable Additional Plates", variable=additional_options_var, command=toggle_additional_options)
+additional_plate_enabled_var = tk.IntVar()
+additional_plate_enabled_var.set(int(read_config_variable("additional_plate_enable")))
+additional_options_checkbutton = ttk.Checkbutton(additional_frame, text="Enable Additional Plates", variable=additional_plate_enabled_var)
 additional_options_checkbutton.pack(anchor="w", pady=5)
 
 
@@ -648,6 +621,7 @@ additional_well_col_selection.set(well_cols[0])
 additional_well_col_dropdown = ttk.OptionMenu(start_position_frame, additional_well_col_selection, well_cols[0],*well_cols)
 additional_well_col_dropdown.grid(row=2, column=1, padx=1, pady=2, sticky= "w")
 
+additional_well_var = tk.StringVar(root)
 # start_position_var.set(target_positions[0])  # Default selection
 
 
@@ -655,8 +629,8 @@ additional_well_col_dropdown.grid(row=2, column=1, padx=1, pady=2, sticky= "w")
 # start_position_dropdown.pack(fill="x", pady=5)
 
 # Initially disable additional options
-additional_options_var.set(0)
-toggle_additional_options()
+# additional_options_var.set(0)
+# toggle_additional_options()
 
 # Tab 3: Run and Output
 run_frame = ttk.Frame(notebook, padding=10)
