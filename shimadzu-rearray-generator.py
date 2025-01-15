@@ -171,11 +171,19 @@ def update_config_variable(variable_name, new_value):
 
 # Function to update all variabled in config.txt
 def update_config_all():
-    update_config_variable("matrix_position", well_var.get())
-    update_config_variable("first_target_position", wellID_dropdown.get())
-    update_config_variable("matrix_application_mode", matrix_var.get())
-    update_config_variable("rearry_export_directory", export_directory_entry.get())
     update_config_variable("adapter_option", adapter_var.get())
+    update_config_variable("first_target_position", wellID_dropdown.get())
+
+    update_config_variable("formic_acid_enable", formic_enabled_var.get())
+    update_config_variable("formic_acid_position", formic_well_var.get())
+    update_config_variable("formic_application_mode", formic_mode_var.get())
+
+    update_config_variable("matrix_enable", matrix_enabled_var.get())
+    update_config_variable("matrix_position", well_var.get())
+    update_config_variable("matrix_application_mode", matrix_var.get())
+
+    update_config_variable("rearry_export_directory", export_directory_entry.get())
+    
 
 # Function to get the export directory from the config.txt file
 def get_export_directory():
@@ -338,6 +346,7 @@ def run():
     if validCDPath:
         target_string_new = f"{plate_selection.get()}, {row_selection.get()}{col_selection.get()}"
         wellID_dropdown.set(target_string_new)
+        formic_well_var.set(formic_well_row_selection.get()+str(formic_well_col_selection.get()))
         well_var.set(well_row_selection.get()+str(well_col_selection.get()))
         adapter_coordinates(adapter_var.get())
         global stub_df
@@ -373,9 +382,14 @@ matrix_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"
 template_variables = {
 "rearry_export_directory": "desktop",
 "first_target_position": "Target 1, A1",
-"matrix_application_mode": "Double Dip",
+"formic_acid_enable" : "0",
+"formic_acid_position": "A2",
+"formic_application_mode": "Single Dip",
+"matrix_enable" : "0",
 "matrix_position": "A1",
-"adapter_option": "Shimadzu Precision adapter"
+"matrix_application_mode": "Double Dip",
+"adapter_option": "Shimadzu Precision adapter",
+
 }
 
 #################  GUI code  #############################
@@ -396,7 +410,7 @@ style.configure("TLabel", padding=1)
 notebook = ttk.Notebook(root)
 notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-# Tab 1: Basic Settings
+# Tab 1: Basic Settings---------------------------------------------------------------------------------------
 basic_frame = ttk.Frame(notebook, padding=10)
 notebook.add(basic_frame, text="Basic Settings")
 
@@ -424,7 +438,6 @@ adapter_dropdown.pack(fill="x", pady=5)
 
 
 # # Create the dropdown using the unique wellIDs as options
-
 default_target_string = read_config_variable("first_target_position")
 pattern = r"Target (\d+), ([A-Z])(\d+)"
 # Perform the matching
@@ -477,19 +490,73 @@ wellID_dropdown = tk.StringVar(root)
 
 
 wellIDs = shimadzuAdapterCoords_df['wellID'].unique()
+# Tab 2: Formic acid Settings---------------------------------------------------------------------------------------
+formic_tab = ttk.Frame(notebook, padding=10)
+notebook.add(formic_tab, text="Optional: CH₂O₂ addition")
 
+formic_enabled_var = tk.IntVar()
+formic_enabled_var.set(int(read_config_variable("formic_acid_enable")))
+formic_enabled_checkbutton = ttk.Checkbutton(formic_tab, text="Enable formic acid addition", variable=formic_enabled_var)
+formic_enabled_checkbutton.pack(anchor="w", pady=5)
+
+formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic acid Resevoir Postion", padding=10)
+formic_well_frame.pack(fill="x", pady=5)
+formic_well_label = ttk.Label(formic_well_frame, text="Enter the well position of a 96 multwell plate that contains formic acid.\nThis will be the same multwell plate that contains matrix [if matrix addition is enabled].")
+formic_well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
+default_well = read_config_variable("formic_acid_position")
+
+pattern = r"([A-Z])(\d+)"
+# Perform the matching
+match = re.match(pattern, default_well)
+
+if match:
+    well_row = match.group(1)  # The number after "Target"
+    well_col = int(match.group(2))             # The letter
+else:
+    print(f"String {default_well} does not match the expected pattern.")
+
+well_rows, well_cols = well_positions = array_lister("96", full = True)
+formic_well_row_selection = tk.StringVar(root)
+formic_well_row_selection.set(well_row)
+formic_well_row_dropdown = ttk.OptionMenu(formic_well_frame, formic_well_row_selection, well_row,*well_rows)
+formic_well_row_dropdown.grid(row=1, column=0, padx=5, pady=2)
+
+formic_well_col_selection = tk.StringVar(root)
+formic_well_col_selection.set(well_row)
+formic_well_col_dropdown = ttk.OptionMenu(formic_well_frame, formic_well_col_selection, well_col,*well_cols)
+formic_well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
+
+# well_positions = array_lister("96")
+formic_well_var = tk.StringVar(root)
+
+
+# Formic Application Mode
+formic_mode_frame = ttk.LabelFrame(formic_tab, text="Formic acid Application Mode", padding=10)
+formic_mode_frame.pack(fill="x", pady=5)
+formic_additional_col_label = ttk.Label(formic_mode_frame, text="Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip)\nonto the microbial material.")
+formic_additional_col_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=0, sticky= "w")
+
+formic_mode_var = tk.StringVar()
+formic_mode_var.set(read_config_variable("formic_application_mode"))
+single_radio = ttk.Radiobutton(formic_mode_frame, text="Single Dip", variable=formic_mode_var, value="Single Dip")
+single_radio.grid(row=1, column=0, padx=5, pady=2)
+double_radio = ttk.Radiobutton(formic_mode_frame, text="Double Dip (recommended)", variable=formic_mode_var, value="Double Dip")
+double_radio.grid(row=1, column=2, padx=5, pady=2)
+
+# Tab 3: Matrix Settings---------------------------------------------------------------------------------------
 # Well Input
 matrix_tab = ttk.Frame(notebook, padding=10)
 notebook.add(matrix_tab, text="Optional: Matrix addition")
 
 matrix_enabled_var = tk.IntVar()
+matrix_enabled_var.set(int(read_config_variable("matrix_enable")))
 matrix_enabled_checkbutton = ttk.Checkbutton(matrix_tab, text="Enable matrix addition", variable=matrix_enabled_var)
 matrix_enabled_checkbutton.pack(anchor="w", pady=5)
 
 
 well_frame = ttk.LabelFrame(matrix_tab, text="Matrix Resevoir Postion", padding=10)
 well_frame.pack(fill="x", pady=5)
-well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix:")
+well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix.\nThis will be the same multwell plate that contains formic acid [if formic acid addition is enabled].")
 well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
 default_well = read_config_variable("matrix_position")
 
