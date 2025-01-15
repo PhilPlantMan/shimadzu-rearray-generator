@@ -538,7 +538,7 @@ double_radio.grid(row=1, column=2, padx=5, pady=2)
 
 # Tab 3: Additional Options
 additional_frame = ttk.Frame(notebook, padding=10)
-notebook.add(additional_frame, text="Additional target(s)")
+notebook.add(additional_frame, text="Optional: Additional target(s)")
 
 
 # Checkbox to enable/disable additional options
