@@ -194,11 +194,12 @@ def prepare_pixl_array():
     firstStubRow = stub_df.iloc[0,:]
     s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
     s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
-    pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
+    if matrix_enabled_var.get() == 1:
+        pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
+        pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
-    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
 
 # Append PIXL  colony and matrix commands to the array
@@ -214,9 +215,10 @@ def append_pixl_commands_to_array(prepared_array):
         if index == 0: continue
         shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
         prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
-        prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
-        if (matrix_var.get() == "Double Dip"):
+        if matrix_enabled_var.get() == 1:
             prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+            if (matrix_var.get() == "Double Dip"):
+                prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
         shimadzuAdapterIndex += 1
     return prepared_array
 
@@ -475,14 +477,17 @@ wellID_dropdown = tk.StringVar(root)
 
 
 wellIDs = shimadzuAdapterCoords_df['wellID'].unique()
-# wellID_dropdown.set(target_string_new)  # Default selection
-# wellID_optionmenu = ttk.OptionMenu(adapter_start_frame, wellID_dropdown, target_string_new, *wellIDs)
-# # wellID_optionmenu.pack(fill="x", pady=5)
-# wellID_optionmenu.grid(row=1, column=4, padx=5, pady=2)
 
 # Well Input
+matrix_tab = ttk.Frame(notebook, padding=10)
+notebook.add(matrix_tab, text="Optional: Matrix addition")
 
-well_frame = ttk.LabelFrame(basic_frame, text="Matrix Resevoir Postion", padding=10)
+matrix_enabled_var = tk.IntVar()
+matrix_enabled_checkbutton = ttk.Checkbutton(matrix_tab, text="Enable matrix addition", variable=matrix_enabled_var)
+matrix_enabled_checkbutton.pack(anchor="w", pady=5)
+
+
+well_frame = ttk.LabelFrame(matrix_tab, text="Matrix Resevoir Postion", padding=10)
 well_frame.pack(fill="x", pady=5)
 well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix:")
 well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
@@ -515,8 +520,10 @@ well_var = tk.StringVar(root)
 # well_dropdown = ttk.OptionMenu(well_frame, well_var, read_config_variable("matrix_position"),*well_positions)
 # well_dropdown.pack(fill="x", pady=5)
 
+
+
 # Matrix Application Mode
-matrix_frame = ttk.LabelFrame(basic_frame, text="Matrix Application Mode", padding=10)
+matrix_frame = ttk.LabelFrame(matrix_tab, text="Matrix Application Mode", padding=10)
 matrix_frame.pack(fill="x", pady=5)
 additional_col_label = ttk.Label(matrix_frame, text="Please select whether PIXL should pin matrix once (Single Dip) or twice (Double Dip)\nonto the microbial material.")
 additional_col_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=0, sticky= "w")
@@ -529,7 +536,7 @@ double_radio = ttk.Radiobutton(matrix_frame, text="Double Dip (recommended)", va
 double_radio.grid(row=1, column=2, padx=5, pady=2)
 
 
-# Tab 2: Additional Options
+# Tab 3: Additional Options
 additional_frame = ttk.Frame(notebook, padding=10)
 notebook.add(additional_frame, text="Additional target(s)")
 
