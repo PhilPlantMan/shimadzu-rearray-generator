@@ -374,13 +374,35 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+
+def split_target_row_col_string(string):
+    pattern = r"Target (\d+), ([A-Z])(\d+)"
+    match = re.match(pattern, string)
+    if match:
+        target_number = int(match.group(1))  # The number after "Target"
+        letter = match.group(2)             # The letter
+        final_number = int(match.group(3))  # The final number
+    else:
+        print("String does not match the expected pattern.")
+    return(target_number, letter, final_number)
+
+def split_row_col_string(string):
+    pattern = r"([A-Z])(\d+)"
+    # Perform the matching
+    match = re.match(pattern, string)
+
+    if match:
+        well_row = match.group(1)  # The number after "Target"
+        well_col = int(match.group(2))             # The letter
+    else:
+        print(f"String {default_well} does not match the expected pattern.")
+    return (well_row, well_col)
 ####### Main #######
 
 # Regardless of which adapter is in use, this df is used to pull the wellIDs
 # for the GUI.
 shimadzuAdapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
-
 reagent_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"))
 
 
@@ -404,7 +426,6 @@ template_variables = {
 # Create the root window
 root = tk.Tk()
 root.title("PIXL re-array Generator for Shimadzu MALDI-TOF")
-#root.geometry("600x700")
 root.iconbitmap(resource_path("icon.ico"))
 
 # Style setup
@@ -444,20 +465,7 @@ adapter_dropdown = ttk.OptionMenu(adapter_frame, adapter_var, read_config_variab
 adapter_dropdown.pack(fill="x", pady=5)
 
 
-# # Create the dropdown using the unique wellIDs as options
-default_target_string = read_config_variable("first_target_position")
-pattern = r"Target (\d+), ([A-Z])(\d+)"
-# Perform the matching
-match = re.match(pattern, default_target_string)
-
-if match:
-    target_number = int(match.group(1))  # The number after "Target"
-    letter = match.group(2)             # The letter
-    final_number = int(match.group(3))  # The final number
-    print(f"Target Number: {target_number}, Letter: {letter}, Final Number: {final_number}")
-else:
-    print("String does not match the expected pattern.")
-
+# Create the dropdown using the unique wellIDs as options
 adapter_start_frame = ttk.LabelFrame(basic_frame, text="Target Adapter Start Position Selection", padding=10)
 adapter_start_frame.pack(fill="x", pady=5)
 
@@ -469,9 +477,10 @@ target_label.grid(row=1, column=0, padx=5, pady=2, sticky= "w")
 target_plates = shimadzuAdapterCoords_df['Plate'].unique()
 formatted_plates = ["Target " + str(plate) for plate in target_plates]
 plate_selection = tk.StringVar(root)
+
+target_number, letter, final_number = split_target_row_col_string(read_config_variable("first_target_position"))
 plate_selection.set("Target "+str(target_number))  # Default selection
 plate_dropdown = ttk.OptionMenu(adapter_start_frame, plate_selection, "Target "+str(target_number), *formatted_plates)
-# plate_dropdown.pack(fill="x", pady=5)
 plate_dropdown.grid(row=2, column=0, padx=5, pady=2)
 
 row_label = ttk.Label(adapter_start_frame, text="Target row")
@@ -480,7 +489,6 @@ target_rows = shimadzuAdapterCoords_df['Row'].unique()
 row_selection = tk.StringVar(root)
 row_selection.set(letter)  # Default selection
 row_dropdown = ttk.OptionMenu(adapter_start_frame, row_selection, letter, *target_rows)
-# row_dropdown.pack(fill="x", pady=5)
 row_dropdown.grid(row=2, column=1, padx=5, pady=2)
 
 col_label = ttk.Label(adapter_start_frame, text="Target column")
@@ -489,14 +497,12 @@ target_cols = shimadzuAdapterCoords_df['Column'].unique()
 col_selection = tk.StringVar(root)
 col_selection.set(final_number)  # Default selection
 col_dropdown = ttk.OptionMenu(adapter_start_frame, col_selection, final_number, *target_cols)
-# col_dropdown.pack(fill="x", pady=5)
 col_dropdown.grid(row=2, column=2, padx=5, pady=2)
 
 target_string_new = f"{plate_selection.get()}, {row_selection.get()}{col_selection.get()}"
 wellID_dropdown = tk.StringVar(root)
-
-
 wellIDs = shimadzuAdapterCoords_df['wellID'].unique()
+
 # Tab 2: Formic acid Settings---------------------------------------------------------------------------------------
 formic_tab = ttk.Frame(notebook, padding=10)
 notebook.add(formic_tab, text="Optional: CH₂O₂ addition")
@@ -510,17 +516,7 @@ formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic acid Resevoir Postio
 formic_well_frame.pack(fill="x", pady=5)
 formic_well_label = ttk.Label(formic_well_frame, text="Enter the well position of a 96 multwell plate that contains formic acid.\nThis will be the same multwell plate that contains matrix [if matrix addition is enabled].")
 formic_well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
-default_well = read_config_variable("formic_acid_position")
-
-pattern = r"([A-Z])(\d+)"
-# Perform the matching
-match = re.match(pattern, default_well)
-
-if match:
-    well_row = match.group(1)  # The number after "Target"
-    well_col = int(match.group(2))             # The letter
-else:
-    print(f"String {default_well} does not match the expected pattern.")
+well_row, well_col =split_row_col_string(read_config_variable("formic_acid_position"))
 
 well_rows, well_cols = well_positions = array_lister("96", full = True)
 formic_well_row_selection = tk.StringVar(root)
@@ -535,7 +531,6 @@ formic_well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 
 # well_positions = array_lister("96")
 formic_well_var = tk.StringVar(root)
-
 
 # Formic Application Mode
 formic_mode_frame = ttk.LabelFrame(formic_tab, text="Formic acid Application Mode", padding=10)
@@ -560,23 +555,12 @@ matrix_enabled_var.set(int(read_config_variable("matrix_enable")))
 matrix_enabled_checkbutton = ttk.Checkbutton(matrix_tab, text="Enable matrix addition", variable=matrix_enabled_var)
 matrix_enabled_checkbutton.pack(anchor="w", pady=5)
 
-
 well_frame = ttk.LabelFrame(matrix_tab, text="Matrix Resevoir Postion", padding=10)
 well_frame.pack(fill="x", pady=5)
 well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix.\nThis will be the same multwell plate that contains formic acid [if formic acid addition is enabled].")
 well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
-default_well = read_config_variable("matrix_position")
 
-pattern = r"([A-Z])(\d+)"
-# Perform the matching
-match = re.match(pattern, default_well)
-
-if match:
-    well_row = match.group(1)  # The number after "Target"
-    well_col = int(match.group(2))             # The letter
-else:
-    print("String does not match the expected pattern.")
-
+well_row, well_col =split_row_col_string(read_config_variable("matrix_position"))
 well_rows, well_cols = well_positions = array_lister("96", full = True)
 well_row_selection = tk.StringVar(root)
 well_row_selection.set(well_row)
@@ -588,11 +572,7 @@ well_col_selection.set(well_row)
 well_col_dropdown = ttk.OptionMenu(well_frame, well_col_selection, well_col,*well_cols)
 well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 
-# well_positions = array_lister("96")
 matrix_well_var = tk.StringVar(root)
-
-
-
 
 # Matrix Application Mode
 matrix_frame = ttk.LabelFrame(matrix_tab, text="Matrix Application Mode", padding=10)
@@ -608,17 +588,15 @@ double_radio = ttk.Radiobutton(matrix_frame, text="Double Dip (recommended)", va
 double_radio.grid(row=1, column=2, padx=5, pady=2)
 
 
-# Tab 3: Additional Options
+# Tab 4: Additional plate Settings---------------------------------------------------------------------------------------
 additional_frame = ttk.Frame(notebook, padding=10)
 notebook.add(additional_frame, text="Optional: Additional target(s)")
-
 
 # Checkbox to enable/disable additional options
 additional_plate_enabled_var = tk.IntVar()
 additional_plate_enabled_var.set(int(read_config_variable("additional_plate_enable")))
 additional_options_checkbutton = ttk.Checkbutton(additional_frame, text="Enable Additional Plates", variable=additional_plate_enabled_var)
 additional_options_checkbutton.pack(anchor="w", pady=5)
-
 
 # Format Selection
 format_var = tk.StringVar(root)
@@ -636,9 +614,6 @@ start_position_frame.pack(fill="x", pady=10)
 additional_start_label = ttk.Label(start_position_frame, text="Select Start Position for first target plate.\nOnce the first target plate has been filled, addtional target plates will fill from A1:")
 additional_start_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=2, sticky= "w")
 
-# start_position_var = tk.StringVar(root)
-# target_positions = array_lister(format_var.get())
-
 additional_row_label = ttk.Label(start_position_frame, text="Row")
 additional_row_label.grid(row=1, column=0, padx=5, pady=0, sticky= "w")
 well_rows, well_cols = well_positions = array_lister(format_var.get(), full = True)
@@ -655,17 +630,8 @@ additional_well_col_dropdown = ttk.OptionMenu(start_position_frame, additional_w
 additional_well_col_dropdown.grid(row=2, column=1, padx=1, pady=2, sticky= "w")
 
 additional_well_var = tk.StringVar(root)
-# start_position_var.set(target_positions[0])  # Default selection
 
-
-# start_position_dropdown = ttk.OptionMenu(start_position_frame, start_position_var, *target_positions)
-# start_position_dropdown.pack(fill="x", pady=5)
-
-# Initially disable additional options
-# additional_options_var.set(0)
-# toggle_additional_options()
-
-# Tab 3: Run and Output
+# Tab 5: Run ---------------------------------------------------------------------------------------
 run_frame = ttk.Frame(notebook, padding=10)
 notebook.add(run_frame, text="Run: Generate re-array")
 
