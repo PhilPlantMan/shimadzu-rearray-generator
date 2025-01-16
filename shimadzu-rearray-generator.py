@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Fri May 26 10:02:25 2023
-
 @author: PhilipKirk
+
+This script provides a GUI application to generate re-array files for the PIXL instrument,
+specifically for preparing Shimadzu MALDI-ToF targets. It handles colony detection data,
+user preferences, and generates the necessary commands for the PIXL to transfer colonies,
+matrix and formic acid (optional) to the target slide or additional plates.
 """
 
 import pandas as pd
@@ -373,7 +378,6 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
-
 
 def split_target_row_col_string(string):
     pattern = r"Target (\d+), ([A-Z])(\d+)"
