@@ -30,16 +30,6 @@ def select_export_directory():
     export_directory_entry.delete(0, tk.END)  # Clear the existing entry
     export_directory_entry.insert(tk.END, directory)
 
-
-# def toggle_additional_options():
-#     state = "normal" if additional_options_var.get() else "disabled"
-#     for child in additional_frame.winfo_children():
-#         # Only configure widgets other than the Checkbutton
-#         if child != additional_options_checkbutton and isinstance(child, (ttk.Entry, ttk.Button, ttk.OptionMenu, ttk.Radiobutton)):
-#             child.configure(state=state)
-
-
-
 # Function to update the start position options based on the selected format
 def update_start_position_options(*args):
     format_selection = format_var.get()
@@ -147,7 +137,7 @@ def update_config_all():
     update_config_variable("formic_application_mode", formic_mode_var.get())
 
     update_config_variable("matrix_enable", matrix_enabled_var.get())
-    update_config_variable("matrix_position", well_var.get())
+    update_config_variable("matrix_position", matrix_well_var.get())
     update_config_variable("matrix_application_mode", matrix_var.get())
 
     update_config_variable("additional_plate_enable", additional_plate_enabled_var.get())
@@ -167,37 +157,60 @@ def get_export_directory():
 # Prepare a dataframe containing the plate definitions
 def prepare_pixl_array():
     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-    s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
+    s1 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
     firstStubRow = stub_df.iloc[0,:]
     s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
-    s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
+    s4 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
-    if matrix_enabled_var.get() == 1:
+    if matrix_enabled_var.get() == 1 | formic_enabled_var.get()  == 1:
         pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
         pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
     return pixlArray_df
 
+# def append_plate_order_commands(pixlArray_df):
+
+
 # Append PIXL  colony and matrix commands to the array
 def append_pixl_commands_to_array(prepared_array):
-    shimadzuAdapterIndex = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex
+    shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
     global stub_df
     if availableAdapterPositions < stub_df.shape[0]-1:
         output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
         stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
         stub_df = stub_df_subset
-    for index, row in stub_df.iterrows():
-        if index == 0: continue
-        shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
-        prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
-        if matrix_enabled_var.get() == 1:
-            prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
-            if (matrix_var.get() == "Double Dip"):
+    shimadzuAdapterIndex = shimadzuAdapterIndex_start
+    if formic_enabled_var.get()  == 0:
+        for index, row in stub_df.iterrows():
+            if index == 0: continue
+            shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+            prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
+            if matrix_enabled_var.get() == 1:
                 prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
-        shimadzuAdapterIndex += 1
+                if (matrix_var.get() == "Double Dip"):
+                    prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+            shimadzuAdapterIndex += 1
+    if formic_enabled_var.get()  == 1:
+        for index, row in stub_df.iterrows():
+            if index == 0: continue
+            shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+            prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
+            prepared_array = append_formic_acid_transfer(prepared_array, shimadzuAdapterRow)
+            if (formic_mode_var.get() == "Double Dip"):
+                prepared_array = append_formic_acid_transfer(prepared_array, shimadzuAdapterRow)
+            shimadzuAdapterIndex += 1
+        if matrix_enabled_var.get() == 1:
+            shimadzuAdapterIndex = shimadzuAdapterIndex_start
+            for index, row in stub_df.iterrows():
+                if index == 0: continue
+                shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+                prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+                if (matrix_var.get() == "Double Dip"):
+                    prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+                shimadzuAdapterIndex += 1
     return prepared_array
 
 # Append a colony transfer command to the array
@@ -211,13 +224,26 @@ def append_colony_transfer(prepared_array, stubRow, shimadzuAdapterRow):
 # Append a matrix transfer command to the array
 def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
 
-    matrix_cartesian_x = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianX"].item()
-    matrix_cartesian_y = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianY"].item()
+    matrix_cartesian_x = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==matrix_well_var.get(),"CartesianX"].item()
+    matrix_cartesian_y = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==matrix_well_var.get(),"CartesianY"].item()
 
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "matrixMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
+    return prepared_array
+
+# Append a matrix transfer command to the array
+def append_formic_acid_transfer(prepared_array, shimadzuAdapterRow):
+
+    formic_cartesian_x = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==formic_well_var.get(),"CartesianX"].item()
+    formic_cartesian_y = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==formic_well_var.get(),"CartesianY"].item()
+
+    if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
+        shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
+
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": formic_cartesian_y,"sourceCol": formic_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
@@ -317,7 +343,7 @@ def run():
         target_string_new = f"{plate_selection.get()}, {row_selection.get()}{col_selection.get()}"
         wellID_dropdown.set(target_string_new)
         formic_well_var.set(formic_well_row_selection.get()+str(formic_well_col_selection.get()))
-        well_var.set(well_row_selection.get()+str(well_col_selection.get()))
+        matrix_well_var.set(well_row_selection.get()+str(well_col_selection.get()))
         additional_well_var.set(additional_well_row_selection.get()+str(additional_well_col_selection.get()))
         adapter_coordinates(adapter_var.get())
         global stub_df
@@ -346,7 +372,7 @@ def resource_path(relative_path):
 shimadzuAdapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
 
-matrix_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"))
+reagent_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"))
 
 
 # Dictionary of variables that are cached in config.txt with default values
@@ -554,10 +580,8 @@ well_col_dropdown = ttk.OptionMenu(well_frame, well_col_selection, well_col,*wel
 well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 
 # well_positions = array_lister("96")
-well_var = tk.StringVar(root)
-# well_var.set(well_row_selection.get()+str(well_col_selection.get()))
-# well_dropdown = ttk.OptionMenu(well_frame, well_var, read_config_variable("matrix_position"),*well_positions)
-# well_dropdown.pack(fill="x", pady=5)
+matrix_well_var = tk.StringVar(root)
+
 
 
 
