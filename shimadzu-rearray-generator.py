@@ -55,9 +55,18 @@ def read_stub_tsv(path):
 def validate_stub_path():
     path = os.path.normpath(directory_entry.get())
     split_path = path.split(os.sep)
-    validCDPath = split_path[-2] == "Colony Detection"
-    if validCDPath: output_text.insert(tk.END, "Valid Colony Detection project found"+ "\n")
-    else: output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
+
+    # validCDPath = split_path[-2] == "Colony Detection"
+    try:
+        colony_detection_dir_index = split_path.index('Colony Detection')
+        project_path = os.path.join("C:\\", *split_path[1:colony_detection_dir_index + 2])
+        directory_entry.delete(0, tk.END)  # Clear the existing entry
+        directory_entry.insert(tk.END, project_path)
+        validCDPath = True
+        output_text.insert(tk.END, "Valid Colony Detection project found"+ "\n")
+    except: 
+        output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
+        validCDPath = False
     return validCDPath
 
 # Function to create a generic config.txt to store user choices
