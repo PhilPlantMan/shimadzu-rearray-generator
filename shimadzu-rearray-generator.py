@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Fri May 26 10:02:25 2023
-
 @author: PhilipKirk
+
+This script provides a GUI application to generate re-array files for the PIXL instrument,
+specifically for preparing Shimadzu MALDI-ToF targets. It handles colony detection data,
+user preferences, and generates the necessary commands for the PIXL to transfer colonies,
+matrix and formic acid (optional) to the target slide or additional plates.
 """
 
 import pandas as pd
@@ -13,8 +18,7 @@ import re
 import shutil
 import sys
 from tkinter.filedialog import askdirectory
-
-
+import math
 
 ####### GUI methods #######
 # Function to handle the selection of the Colony Detection directory
@@ -24,6 +28,7 @@ def select_CD_directory():
     directory = filedialog.askdirectory(initialdir = pixlAppdataPath)
     directory_entry.delete(0, tk.END)  # Clear the existing entry
     directory_entry.insert(tk.END, directory)
+    directory_entry.xview_moveto(1)
 
 # Function to handle the selection of the export directory
 def select_export_directory():
@@ -31,46 +36,6 @@ def select_export_directory():
     directory = filedialog.askdirectory(initialdir = export_directory)
     export_directory_entry.delete(0, tk.END)  # Clear the existing entry
     export_directory_entry.insert(tk.END, directory)
-
-# Function to show/hide additional options based on the checkbox state
-# def show_additional_options():
-#     if additional_options_var.get() == 1:
-#         export_directory_label.pack_forget()
-#         export_directory_entry.pack_forget()
-#         export_directory_button.pack_forget()
-#         run_button.pack_forget()
-#         output_label.pack_forget()
-#         output_text.pack_forget()
-#         format_label.pack()
-#         format_96_radiobutton.pack()
-#         format_384_radiobutton.pack()
-#         start_position_label.pack()
-#         start_position_dropdown.pack()
-#         adapter_label.pack()
-#         adapter_dropdown.pack()
-#         export_directory_label.pack()
-#         export_directory_entry.pack()
-#         export_directory_button.pack()
-#         run_button.pack()
-#         output_label.pack()
-#         output_text.pack()
-#         format_var.trace('w', update_start_position_options)
-#     else:
-#         # Hide additional options
-#         format_label.pack_forget()
-#         format_96_radiobutton.pack_forget()
-#         format_384_radiobutton.pack_forget()
-#         start_position_label.pack_forget()
-#         start_position_dropdown.pack_forget()
-
-def toggle_additional_options():
-    state = "normal" if additional_options_var.get() else "disabled"
-    for child in additional_frame.winfo_children():
-        # Only configure widgets other than the Checkbutton
-        if child != additional_options_checkbutton and isinstance(child, (ttk.Entry, ttk.Button, ttk.OptionMenu, ttk.Radiobutton)):
-            child.configure(state=state)
-
-
 
 # Function to update the start position options based on the selected format
 def update_start_position_options(*args):
@@ -97,9 +62,18 @@ def read_stub_tsv(path):
 def validate_stub_path():
     path = os.path.normpath(directory_entry.get())
     split_path = path.split(os.sep)
-    validCDPath = split_path[-2] == "Colony Detection"
-    if validCDPath: output_text.insert(tk.END, "Valid Colony Detection project found"+ "\n")
-    else: output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
+
+    # validCDPath = split_path[-2] == "Colony Detection"
+    try:
+        colony_detection_dir_index = split_path.index('Colony Detection')
+        project_path = os.path.join("C:\\", *split_path[1:colony_detection_dir_index + 2])
+        directory_entry.delete(0, tk.END)  # Clear the existing entry
+        directory_entry.insert(tk.END, project_path)
+        validCDPath = True
+        output_text.insert(tk.END, "Valid Colony Detection project found"+ "\n")
+    except: 
+        output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
+        validCDPath = False
     return validCDPath
 
 # Function to create a generic config.txt to store user choices
@@ -171,11 +145,21 @@ def update_config_variable(variable_name, new_value):
 
 # Function to update all variabled in config.txt
 def update_config_all():
-    update_config_variable("matrix_position", well_var.get())
-    update_config_variable("first_target_position", wellID_dropdown.get())
-    update_config_variable("matrix_application_mode", matrix_var.get())
-    update_config_variable("rearry_export_directory", export_directory_entry.get())
     update_config_variable("adapter_option", adapter_var.get())
+    update_config_variable("first_target_position", wellID_dropdown.get())
+
+    update_config_variable("formic_acid_enable", formic_enabled_var.get())
+    update_config_variable("formic_acid_position", formic_well_var.get())
+    update_config_variable("formic_application_mode", formic_mode_var.get())
+
+    update_config_variable("matrix_enable", matrix_enabled_var.get())
+    update_config_variable("matrix_position", matrix_well_var.get())
+    update_config_variable("matrix_application_mode", matrix_var.get())
+
+    update_config_variable("additional_plate_enable", additional_plate_enabled_var.get())
+
+    update_config_variable("rearry_export_directory", export_directory_entry.get())
+    
 
 # Function to get the export directory from the config.txt file
 def get_export_directory():
@@ -187,76 +171,153 @@ def get_export_directory():
 ####### Generating Rearry methods #######
 
 # Prepare a dataframe containing the plate definitions
-def prepare_pixl_array():
+def prepare_pixl_array(stub_df, adapter_coordinates_new):
     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-    s1 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
-    s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
+    
+    # Declare adapters
+    adapter_list = adapter_coordinates_new['targetName'].unique()
+    for adapter in adapter_list:
+        adapter_series = pd.Series({"source" : adapter, 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
+        pixlArray_df = pd.concat([pixlArray_df, adapter_series.to_frame().T], ignore_index=True)
+    
+    # Declare colony source plate
     firstStubRow = stub_df.iloc[0,:]
-    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
-    s4 = pd.Series({"source" : 'matrixMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
-    pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
-    if matrix_enabled_var.get() == 1:
-        pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
-        pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
+    
+    # Declare reagent MWP
+    reagent_series = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
+    # TODO temporary override is put in place to ensure red bay is occupied regardless of whether reagents are needed
+    if (matrix_enabled_var.get() == 1) | (formic_enabled_var.get()  == 1) | (True):
+        pixlArray_df = pd.concat([pixlArray_df, reagent_series.to_frame().T], ignore_index=True)
+    
+    # Set order using false pinnings
+    # TODO delete lines below to remove false pinnings
+    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
+    s4 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""}) 
     pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
 
+#For when BP has updated plate type
+# def prepare_pixl_array():
+#     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
+#     s1 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
+#     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "X", 'sourceCol' : "NONE", 'target': "Target"})
+#     firstStubRow = stub_df.iloc[0,:]   
+#     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
+#     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
+#     if matrix_enabled_var.get() == 1 | formic_enabled_var.get()  == 1:
+#         pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
+#     return pixlArray_df
+
+# def append_plate_order_commands(pixlArray_df):
+
+
 # Append PIXL  colony and matrix commands to the array
-def append_pixl_commands_to_array(prepared_array):
-    shimadzuAdapterIndex = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex
-    global stub_df
-    if availableAdapterPositions < stub_df.shape[0]-1:
-        output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
-        stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
-        stub_df = stub_df_subset
-    for index, row in stub_df.iterrows():
-        if index == 0: continue
-        shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
-        prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
-        if matrix_enabled_var.get() == 1:
-            prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
-            if (matrix_var.get() == "Double Dip"):
+def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
+    # shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    # availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
+    # if availableAdapterPositions < stub_df.shape[0]-1:
+    #     output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
+    #     stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
+    #     stub_df = stub_df_subset
+    shimadzuAdapterIndex_start = 0
+    shimadzuAdapterIndex = shimadzuAdapterIndex_start
+    if formic_enabled_var.get()  == 0:
+        for index, row in stub_df.iterrows():
+            if index == 0: continue
+            shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+            prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
+            if matrix_enabled_var.get() == 1:
                 prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
-        shimadzuAdapterIndex += 1
+                if (matrix_var.get() == "Double Dip"):
+                    prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+            shimadzuAdapterIndex += 1
+    if formic_enabled_var.get()  == 1:
+        for index, row in stub_df.iterrows():
+            if index == 0: continue
+            shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+            prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
+            prepared_array = append_formic_acid_transfer(prepared_array, shimadzuAdapterRow)
+            if (formic_mode_var.get() == "Double Dip"):
+                prepared_array = append_formic_acid_transfer(prepared_array, shimadzuAdapterRow)
+            shimadzuAdapterIndex += 1
+        if matrix_enabled_var.get() == 1:
+            shimadzuAdapterIndex = shimadzuAdapterIndex_start
+            for index, row in stub_df.iterrows():
+                if index == 0: continue
+                shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+                prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+                if (matrix_var.get() == "Double Dip"):
+                    prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
+                shimadzuAdapterIndex += 1
     return prepared_array
 
 # Append a colony transfer command to the array
 def append_colony_transfer(prepared_array, stubRow, shimadzuAdapterRow):
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
-    targetSeries = pd.Series({"source": stubRow['source'],"sourceRow": stubRow['sourceRow'],"sourceCol": stubRow['sourceCol'], "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": stubRow['source'],"sourceRow": stubRow['sourceRow'],"sourceCol": stubRow['sourceCol'], "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
 # Append a matrix transfer command to the array
 def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
 
-    matrix_cartesian_x = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianX"].item()
-    matrix_cartesian_y = matrix_multiwell_df.loc[matrix_multiwell_df.Cardinal==well_var.get(),"CartesianY"].item()
+    matrix_cartesian_x = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==matrix_well_var.get(),"CartesianX"].item()
+    matrix_cartesian_y = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==matrix_well_var.get(),"CartesianY"].item()
 
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "matrixMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
-# Trigger all methods required to make array and export to user defined directory
-def export_pixl_array():
-    pixl_array = prepare_pixl_array()
-    pixl_array = append_pixl_commands_to_array(pixl_array)
+# Append a matrix transfer command to the array
+def append_formic_acid_transfer(prepared_array, shimadzuAdapterRow):
 
-    if additional_options_var.get() == 1:
-        pixl_array = append_additional_target_to_array(pixl_array)
+    formic_cartesian_x = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==formic_well_var.get(),"CartesianX"].item()
+    formic_cartesian_y = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==formic_well_var.get(),"CartesianY"].item()
+
+    if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
+        shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
+
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": formic_cartesian_y,"sourceCol": formic_cartesian_x, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
+    return prepared_array
+
+
+def create_targets_for_each_colony(stub_df,adapterCoords_df):
+    number_of_colonies = stub_df.shape[0]-1
+    shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    positions_on_adapter = adapterCoords_df.shape[0]
+    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
+    available_first_adapter_positions = number_of_colonies - shimadzuAdapterIndex_start
+    number_of_adapters = math.ceil((number_of_colonies - available_first_adapter_positions)/positions_on_adapter)+1
+    all_adapter_coords = adapterCoords_df.iloc[shimadzuAdapterIndex_start:]
+    all_adapter_coords.loc[:,"targetName"] = "SlideAdapter1"
+    for adapter in range(2, number_of_adapters+1):
+        new_adapter = adapterCoords_df
+        new_adapter["targetName"] = "SlideAdapter" + str(adapter)
+        all_adapter_coords = pd.concat([all_adapter_coords, new_adapter], ignore_index=True)
+    return all_adapter_coords
+
+
+# Trigger all methods required to make array and export to user defined directory
+def export_pixl_array(stub_df, adapter_coordinates_new):
+    pixl_array = prepare_pixl_array(stub_df, adapter_coordinates_new)
+    pixl_array = append_pixl_commands_to_array(pixl_array, stub_df, adapter_coordinates_new)
+
+    if additional_plate_enabled_var.get() == 1:
+        pixl_array = append_additional_target_to_array(pixl_array, stub_df)
 
     project_name = os.path.basename(directory_entry.get())
     array_path = os.path.join(export_directory_entry.get(), project_name + "_MALDI_Rearray.csv")
     pixl_array.to_csv(array_path, header = False, index = False)
 
 # Function for addition target plate: prepend plate deinition and append PIXL commands
-def append_additional_target_to_array(pixl_array):
+def append_additional_target_to_array(pixl_array, stub_df):
 
     def addAdditionalTargetDefinition(plate_number, pixl_array):
         targetPlateID = "AdditionalMWPTarget{}".format(plate_number)
@@ -266,7 +327,7 @@ def append_additional_target_to_array(pixl_array):
 
     numAdditionalTargetPlates = 1
     target_positions = array_lister(format_var.get())
-    targetPositionIndex = target_positions.index(start_position_var.get())
+    targetPositionIndex = target_positions.index(additional_well_var.get())
     target_positions = target_positions[targetPositionIndex:]
     target_plates_list = [numAdditionalTargetPlates] * len(target_positions)
 
@@ -325,12 +386,12 @@ def upload_pinning_profile():
     shutil.copy(profile_src_path, profile_dest_path)
 
 def adapter_coordinates(user_adapter_choice):
-    global adapterCoords_df
     if user_adapter_choice == 'Shimadzu Precision adapter':
         adapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
     if user_adapter_choice == 'Singer Instruments target adapter':
         adapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_SI_adapter.csv"))
     adapterCoords_df["wellID"] = "Target " + adapterCoords_df["Plate"].map(str) + ", " + adapterCoords_df["Row"]+ adapterCoords_df["Column"].map(str)
+    return adapterCoords_df
 
 # Function called when 'Run' button pressed
 def run():
@@ -338,11 +399,14 @@ def run():
     if validCDPath:
         target_string_new = f"{plate_selection.get()}, {row_selection.get()}{col_selection.get()}"
         wellID_dropdown.set(target_string_new)
-        well_var.set(well_row_selection.get()+str(well_col_selection.get()))
-        adapter_coordinates(adapter_var.get())
-        global stub_df
+        formic_well_var.set(formic_well_row_selection.get()+str(formic_well_col_selection.get()))
+        matrix_well_var.set(well_row_selection.get()+str(well_col_selection.get()))
+        additional_well_var.set(additional_well_row_selection.get()+str(additional_well_col_selection.get()))
+        adapterCoords_df = adapter_coordinates(adapter_var.get())
+        # global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
-        export_pixl_array()
+        adapter_coordinates_new = create_targets_for_each_colony(stub_df, adapterCoords_df)
+        export_pixl_array(stub_df, adapter_coordinates_new)
         output_text.insert(tk.END, "Success! PIXL rearry file exported\n")
         update_config_all()
         output_text.insert(tk.END, "\n")
@@ -359,23 +423,50 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+def split_target_row_col_string(string):
+    pattern = r"Target (\d+), ([A-Z])(\d+)"
+    match = re.match(pattern, string)
+    if match:
+        target_number = int(match.group(1))  # The number after "Target"
+        letter = match.group(2)             # The letter
+        final_number = int(match.group(3))  # The final number
+    else:
+        print("String does not match the expected pattern.")
+    return(target_number, letter, final_number)
+
+def split_row_col_string(string):
+    pattern = r"([A-Z])(\d+)"
+    # Perform the matching
+    match = re.match(pattern, string)
+
+    if match:
+        well_row = match.group(1)  # The number after "Target"
+        well_col = int(match.group(2))             # The letter
+    else:
+        print(f"String {default_well} does not match the expected pattern.")
+    return (well_row, well_col)
 ####### Main #######
 
 # Regardless of which adapter is in use, this df is used to pull the wellIDs
 # for the GUI.
 shimadzuAdapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
-
-matrix_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"))
+reagent_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"))
 
 
 # Dictionary of variables that are cached in config.txt with default values
 template_variables = {
 "rearry_export_directory": "desktop",
 "first_target_position": "Target 1, A1",
-"matrix_application_mode": "Double Dip",
+"formic_acid_enable" : "0",
+"formic_acid_position": "A2",
+"formic_application_mode": "Single Dip",
+"matrix_enable" : "0",
 "matrix_position": "A1",
-"adapter_option": "Shimadzu Precision adapter"
+"matrix_application_mode": "Double Dip",
+"additional_plate_enable" : "0",
+"adapter_option": "Shimadzu Precision adapter",
+
 }
 
 #################  GUI code  #############################
@@ -383,7 +474,6 @@ template_variables = {
 # Create the root window
 root = tk.Tk()
 root.title("PIXL re-array Generator for Shimadzu MALDI-TOF")
-#root.geometry("600x700")
 root.iconbitmap(resource_path("icon.ico"))
 
 # Style setup
@@ -396,7 +486,7 @@ style.configure("TLabel", padding=1)
 notebook = ttk.Notebook(root)
 notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-# Tab 1: Basic Settings
+# Tab 1: Basic Settings---------------------------------------------------------------------------------------
 basic_frame = ttk.Frame(notebook, padding=10)
 notebook.add(basic_frame, text="Basic Settings")
 
@@ -405,7 +495,7 @@ cdp_frame = ttk.LabelFrame(basic_frame, text="Colony Detection Project Selection
 cdp_frame.pack(fill="x", pady=5)
 cdp_label = ttk.Label(cdp_frame, text="Select Colony Detection Project Folder:")
 cdp_label.grid(row=0, column=0, columnspan= 3, padx=0, pady=2, sticky="w")
-directory_entry = ttk.Entry(cdp_frame, width=50)
+directory_entry = ttk.Entry(cdp_frame, width=60)
 directory_entry.grid(row=1, column=0, columnspan= 3, padx=5, pady=2)
 cdp_button = ttk.Button(cdp_frame, text="Browse", command=select_CD_directory)
 cdp_button.grid(row=1, column=4, padx=5, pady=2)
@@ -423,21 +513,7 @@ adapter_dropdown = ttk.OptionMenu(adapter_frame, adapter_var, read_config_variab
 adapter_dropdown.pack(fill="x", pady=5)
 
 
-# # Create the dropdown using the unique wellIDs as options
-
-default_target_string = read_config_variable("first_target_position")
-pattern = r"Target (\d+), ([A-Z])(\d+)"
-# Perform the matching
-match = re.match(pattern, default_target_string)
-
-if match:
-    target_number = int(match.group(1))  # The number after "Target"
-    letter = match.group(2)             # The letter
-    final_number = int(match.group(3))  # The final number
-    print(f"Target Number: {target_number}, Letter: {letter}, Final Number: {final_number}")
-else:
-    print("String does not match the expected pattern.")
-
+# Create the dropdown using the unique wellIDs as options
 adapter_start_frame = ttk.LabelFrame(basic_frame, text="Target Adapter Start Position Selection", padding=10)
 adapter_start_frame.pack(fill="x", pady=5)
 
@@ -449,9 +525,10 @@ target_label.grid(row=1, column=0, padx=5, pady=2, sticky= "w")
 target_plates = shimadzuAdapterCoords_df['Plate'].unique()
 formatted_plates = ["Target " + str(plate) for plate in target_plates]
 plate_selection = tk.StringVar(root)
+
+target_number, letter, final_number = split_target_row_col_string(read_config_variable("first_target_position"))
 plate_selection.set("Target "+str(target_number))  # Default selection
 plate_dropdown = ttk.OptionMenu(adapter_start_frame, plate_selection, "Target "+str(target_number), *formatted_plates)
-# plate_dropdown.pack(fill="x", pady=5)
 plate_dropdown.grid(row=2, column=0, padx=5, pady=2)
 
 row_label = ttk.Label(adapter_start_frame, text="Target row")
@@ -460,7 +537,6 @@ target_rows = shimadzuAdapterCoords_df['Row'].unique()
 row_selection = tk.StringVar(root)
 row_selection.set(letter)  # Default selection
 row_dropdown = ttk.OptionMenu(adapter_start_frame, row_selection, letter, *target_rows)
-# row_dropdown.pack(fill="x", pady=5)
 row_dropdown.grid(row=2, column=1, padx=5, pady=2)
 
 col_label = ttk.Label(adapter_start_frame, text="Target column")
@@ -469,40 +545,70 @@ target_cols = shimadzuAdapterCoords_df['Column'].unique()
 col_selection = tk.StringVar(root)
 col_selection.set(final_number)  # Default selection
 col_dropdown = ttk.OptionMenu(adapter_start_frame, col_selection, final_number, *target_cols)
-# col_dropdown.pack(fill="x", pady=5)
 col_dropdown.grid(row=2, column=2, padx=5, pady=2)
 
 target_string_new = f"{plate_selection.get()}, {row_selection.get()}{col_selection.get()}"
 wellID_dropdown = tk.StringVar(root)
-
-
 wellIDs = shimadzuAdapterCoords_df['wellID'].unique()
 
+# Tab 2: Formic acid Settings---------------------------------------------------------------------------------------
+formic_tab = ttk.Frame(notebook, padding=10)
+notebook.add(formic_tab, text="Optional: CH₂O₂ addition")
+
+formic_enabled_var = tk.IntVar()
+formic_enabled_var.set(int(read_config_variable("formic_acid_enable")))
+formic_enabled_checkbutton = ttk.Checkbutton(formic_tab, text="Enable formic acid addition", variable=formic_enabled_var)
+formic_enabled_checkbutton.pack(anchor="w", pady=5)
+
+formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic acid Resevoir Postion", padding=10)
+formic_well_frame.pack(fill="x", pady=5)
+formic_well_label = ttk.Label(formic_well_frame, text="Enter the well position of a 96 multwell plate that contains formic acid.\nThis will be the same multwell plate that contains matrix [if matrix addition is enabled].")
+formic_well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
+well_row, well_col =split_row_col_string(read_config_variable("formic_acid_position"))
+
+well_rows, well_cols = well_positions = array_lister("96", full = True)
+formic_well_row_selection = tk.StringVar(root)
+formic_well_row_selection.set(well_row)
+formic_well_row_dropdown = ttk.OptionMenu(formic_well_frame, formic_well_row_selection, well_row,*well_rows)
+formic_well_row_dropdown.grid(row=1, column=0, padx=5, pady=2)
+
+formic_well_col_selection = tk.StringVar(root)
+formic_well_col_selection.set(well_row)
+formic_well_col_dropdown = ttk.OptionMenu(formic_well_frame, formic_well_col_selection, well_col,*well_cols)
+formic_well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
+
+# well_positions = array_lister("96")
+formic_well_var = tk.StringVar(root)
+
+# Formic Application Mode
+formic_mode_frame = ttk.LabelFrame(formic_tab, text="Formic acid Application Mode", padding=10)
+formic_mode_frame.pack(fill="x", pady=5)
+formic_additional_col_label = ttk.Label(formic_mode_frame, text="Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip)\nonto the microbial material.")
+formic_additional_col_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=0, sticky= "w")
+
+formic_mode_var = tk.StringVar()
+formic_mode_var.set(read_config_variable("formic_application_mode"))
+single_radio = ttk.Radiobutton(formic_mode_frame, text="Single Dip", variable=formic_mode_var, value="Single Dip")
+single_radio.grid(row=1, column=0, padx=5, pady=2)
+double_radio = ttk.Radiobutton(formic_mode_frame, text="Double Dip (recommended)", variable=formic_mode_var, value="Double Dip")
+double_radio.grid(row=1, column=2, padx=5, pady=2)
+
+# Tab 3: Matrix Settings---------------------------------------------------------------------------------------
 # Well Input
 matrix_tab = ttk.Frame(notebook, padding=10)
 notebook.add(matrix_tab, text="Optional: Matrix addition")
 
 matrix_enabled_var = tk.IntVar()
+matrix_enabled_var.set(int(read_config_variable("matrix_enable")))
 matrix_enabled_checkbutton = ttk.Checkbutton(matrix_tab, text="Enable matrix addition", variable=matrix_enabled_var)
 matrix_enabled_checkbutton.pack(anchor="w", pady=5)
 
-
 well_frame = ttk.LabelFrame(matrix_tab, text="Matrix Resevoir Postion", padding=10)
 well_frame.pack(fill="x", pady=5)
-well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix:")
+well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix.\nThis will be the same multwell plate that contains formic acid [if formic acid addition is enabled].")
 well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
-default_well = read_config_variable("matrix_position")
 
-pattern = r"([A-Z])(\d+)"
-# Perform the matching
-match = re.match(pattern, default_well)
-
-if match:
-    well_row = match.group(1)  # The number after "Target"
-    well_col = int(match.group(2))             # The letter
-else:
-    print("String does not match the expected pattern.")
-
+well_row, well_col =split_row_col_string(read_config_variable("matrix_position"))
 well_rows, well_cols = well_positions = array_lister("96", full = True)
 well_row_selection = tk.StringVar(root)
 well_row_selection.set(well_row)
@@ -514,13 +620,7 @@ well_col_selection.set(well_row)
 well_col_dropdown = ttk.OptionMenu(well_frame, well_col_selection, well_col,*well_cols)
 well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 
-# well_positions = array_lister("96")
-well_var = tk.StringVar(root)
-# well_var.set(well_row_selection.get()+str(well_col_selection.get()))
-# well_dropdown = ttk.OptionMenu(well_frame, well_var, read_config_variable("matrix_position"),*well_positions)
-# well_dropdown.pack(fill="x", pady=5)
-
-
+matrix_well_var = tk.StringVar(root)
 
 # Matrix Application Mode
 matrix_frame = ttk.LabelFrame(matrix_tab, text="Matrix Application Mode", padding=10)
@@ -536,16 +636,15 @@ double_radio = ttk.Radiobutton(matrix_frame, text="Double Dip (recommended)", va
 double_radio.grid(row=1, column=2, padx=5, pady=2)
 
 
-# Tab 3: Additional Options
+# Tab 4: Additional plate Settings---------------------------------------------------------------------------------------
 additional_frame = ttk.Frame(notebook, padding=10)
-notebook.add(additional_frame, text="Additional target(s)")
-
+notebook.add(additional_frame, text="Optional: Additional target(s)")
 
 # Checkbox to enable/disable additional options
-additional_options_var = tk.IntVar()
-additional_options_checkbutton = ttk.Checkbutton(additional_frame, text="Enable Additional Plates", variable=additional_options_var, command=toggle_additional_options)
+additional_plate_enabled_var = tk.IntVar()
+additional_plate_enabled_var.set(int(read_config_variable("additional_plate_enable")))
+additional_options_checkbutton = ttk.Checkbutton(additional_frame, text="Enable Additional Plates", variable=additional_plate_enabled_var)
 additional_options_checkbutton.pack(anchor="w", pady=5)
-
 
 # Format Selection
 format_var = tk.StringVar(root)
@@ -563,9 +662,6 @@ start_position_frame.pack(fill="x", pady=10)
 additional_start_label = ttk.Label(start_position_frame, text="Select Start Position for first target plate.\nOnce the first target plate has been filled, addtional target plates will fill from A1:")
 additional_start_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=2, sticky= "w")
 
-# start_position_var = tk.StringVar(root)
-# target_positions = array_lister(format_var.get())
-
 additional_row_label = ttk.Label(start_position_frame, text="Row")
 additional_row_label.grid(row=1, column=0, padx=5, pady=0, sticky= "w")
 well_rows, well_cols = well_positions = array_lister(format_var.get(), full = True)
@@ -581,17 +677,9 @@ additional_well_col_selection.set(well_cols[0])
 additional_well_col_dropdown = ttk.OptionMenu(start_position_frame, additional_well_col_selection, well_cols[0],*well_cols)
 additional_well_col_dropdown.grid(row=2, column=1, padx=1, pady=2, sticky= "w")
 
-# start_position_var.set(target_positions[0])  # Default selection
+additional_well_var = tk.StringVar(root)
 
-
-# start_position_dropdown = ttk.OptionMenu(start_position_frame, start_position_var, *target_positions)
-# start_position_dropdown.pack(fill="x", pady=5)
-
-# Initially disable additional options
-additional_options_var.set(0)
-toggle_additional_options()
-
-# Tab 3: Run and Output
+# Tab 5: Run ---------------------------------------------------------------------------------------
 run_frame = ttk.Frame(notebook, padding=10)
 notebook.add(run_frame, text="Run: Generate re-array")
 
