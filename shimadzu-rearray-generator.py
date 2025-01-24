@@ -177,7 +177,7 @@ def prepare_pixl_array(stub_df, adapter_coordinates_new):
     # Declare adapters
     adapter_list = adapter_coordinates_new['targetName'].unique()
     for adapter in adapter_list:
-        adapter_series = pd.Series({"source" : adapter, 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
+        adapter_series = pd.Series({"source" : adapter, 'sourceRow' : "SMT", 'sourceCol' : "NONE", 'target': "Target"})
         pixlArray_df = pd.concat([pixlArray_df, adapter_series.to_frame().T], ignore_index=True)
     
     # Declare colony source plate
@@ -185,42 +185,14 @@ def prepare_pixl_array(stub_df, adapter_coordinates_new):
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
     
     # Declare reagent MWP
-    reagent_series = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
+    reagent_series = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "MWP", 'sourceCol' : "96", 'target': "Source"})
     # TODO temporary override is put in place to ensure red bay is occupied regardless of whether reagents are needed
     if (matrix_enabled_var.get() == 1) | (formic_enabled_var.get()  == 1) | (True):
         pixlArray_df = pd.concat([pixlArray_df, reagent_series.to_frame().T], ignore_index=True)
-    
-    # Set order using false pinnings
-    # TODO delete lines below to remove false pinnings
-    s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
-    s4 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""}) 
-    pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
-    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
-
-#For when BP has updated plate type
-# def prepare_pixl_array():
-#     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-#     s1 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
-#     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "X", 'sourceCol' : "NONE", 'target': "Target"})
-#     firstStubRow = stub_df.iloc[0,:]   
-#     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
-#     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
-#     if matrix_enabled_var.get() == 1 | formic_enabled_var.get()  == 1:
-#         pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
-#     return pixlArray_df
-
-# def append_plate_order_commands(pixlArray_df):
-
 
 # Append PIXL  colony and matrix commands to the array
 def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
-    # shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    # availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
-    # if availableAdapterPositions < stub_df.shape[0]-1:
-    #     output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
-    #     stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
-    #     stub_df = stub_df_subset
     shimadzuAdapterIndex_start = 0
     shimadzuAdapterIndex = shimadzuAdapterIndex_start
     if formic_enabled_var.get()  == 0:
@@ -263,27 +235,21 @@ def append_colony_transfer(prepared_array, stubRow, shimadzuAdapterRow):
 
 # Append a matrix transfer command to the array
 def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
-
-    matrix_cartesian_x = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==matrix_well_var.get(),"CartesianX"].item()
-    matrix_cartesian_y = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==matrix_well_var.get(),"CartesianY"].item()
-
+    matrix_row, matrix_col = split_row_col_string(matrix_well_var.get())
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": matrix_row,"sourceCol": matrix_col, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
 # Append a matrix transfer command to the array
 def append_formic_acid_transfer(prepared_array, shimadzuAdapterRow):
-
-    formic_cartesian_x = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==formic_well_var.get(),"CartesianX"].item()
-    formic_cartesian_y = reagent_multiwell_df.loc[reagent_multiwell_df.Cardinal==formic_well_var.get(),"CartesianY"].item()
-
+    formic_row,formic_col = split_row_col_string(formic_well_var.get())
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": formic_cartesian_y,"sourceCol": formic_cartesian_x, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": formic_row,"sourceCol": formic_col, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
@@ -451,8 +417,6 @@ def split_row_col_string(string):
 # for the GUI.
 shimadzuAdapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
 shimadzuAdapterCoords_df["wellID"] = "Target " + shimadzuAdapterCoords_df["Plate"].map(str) + ", " + shimadzuAdapterCoords_df["Row"]+ shimadzuAdapterCoords_df["Column"].map(str)
-reagent_multiwell_df = pd.read_csv(resource_path("thermo_nunc_96_coordinates.csv"))
-
 
 # Dictionary of variables that are cached in config.txt with default values
 template_variables = {
