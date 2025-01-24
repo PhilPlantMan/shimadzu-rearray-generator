@@ -156,3 +156,4 @@ cython_debug/
 # Other
 sandpit.py
 .spec
+shimadzu-rearray-generator.spec
