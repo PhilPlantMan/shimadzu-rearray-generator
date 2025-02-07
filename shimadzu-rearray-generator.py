@@ -560,7 +560,7 @@ formic_enabled_var.set(int(read_config_variable("formic_acid_enable")))
 formic_enabled_checkbutton = ttk.Checkbutton(formic_tab, text="Enable formic acid addition", variable=formic_enabled_var)
 formic_enabled_checkbutton.pack(anchor="w", pady=5)
 
-formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic acid Reservoir Postion", padding=10)
+formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic Acid Reservoir Postion", padding=10)
 formic_well_frame.pack(fill="x", pady=5)
 formic_well_label = ttk.Label(formic_well_frame, text="Enter the well position of a 96 multwell plate that contains formic acid.\nThis will be the same multwell plate that contains matrix [if matrix addition is enabled].")
 formic_well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
@@ -581,7 +581,7 @@ formic_well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 formic_well_var = tk.StringVar(root)
 
 # Formic Application Mode
-formic_mode_frame = ttk.LabelFrame(formic_tab, text="Formic acid Application Mode", padding=10)
+formic_mode_frame = ttk.LabelFrame(formic_tab, text="Formic Acid Application Mode", padding=10)
 formic_mode_frame.pack(fill="x", pady=5)
 formic_additional_col_label = ttk.Label(formic_mode_frame, text="Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip)\nonto the microbial material.")
 formic_additional_col_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=0, sticky= "w")
