@@ -192,13 +192,13 @@ def prepare_pixl_array(stub_df, adapter_coordinates_new):
     return pixlArray_df
 
 # Append PIXL  colony and matrix commands to the array
-def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
+def append_pixl_commands_to_array(prepared_array, stub_df, adapter_coordinates):
     shimadzuAdapterIndex_start = 0
     shimadzuAdapterIndex = shimadzuAdapterIndex_start
     if formic_enabled_var.get()  == 0:
         for index, row in stub_df.iterrows():
             if index == 0: continue
-            shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+            shimadzuAdapterRow = adapter_coordinates.iloc[shimadzuAdapterIndex,:]
             prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
             if matrix_enabled_var.get() == 1:
                 prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
@@ -208,7 +208,7 @@ def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
     if formic_enabled_var.get()  == 1:
         for index, row in stub_df.iterrows():
             if index == 0: continue
-            shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+            shimadzuAdapterRow = adapter_coordinates.iloc[shimadzuAdapterIndex,:]
             prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
             prepared_array = append_formic_acid_transfer(prepared_array, shimadzuAdapterRow)
             if (formic_mode_var.get() == "Double Dip"):
@@ -218,7 +218,7 @@ def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
             shimadzuAdapterIndex = shimadzuAdapterIndex_start
             for index, row in stub_df.iterrows():
                 if index == 0: continue
-                shimadzuAdapterRow = adapterCoords_df.iloc[shimadzuAdapterIndex,:]
+                shimadzuAdapterRow = adapter_coordinates.iloc[shimadzuAdapterIndex,:]
                 prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
                 if (matrix_var.get() == "Double Dip"):
                     prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
@@ -258,8 +258,8 @@ def create_targets_for_each_colony(stub_df,adapterCoords_df):
     number_of_colonies = stub_df.shape[0]-1
     shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
     positions_on_adapter = adapterCoords_df.shape[0]
-    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
-    available_first_adapter_positions = number_of_colonies - shimadzuAdapterIndex_start
+    # availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
+    available_first_adapter_positions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
     number_of_adapters = math.ceil((number_of_colonies - available_first_adapter_positions)/positions_on_adapter)+1
     all_adapter_coords = adapterCoords_df.iloc[shimadzuAdapterIndex_start:]
     all_adapter_coords.loc[:,"targetName"] = "SlideAdapter1"
