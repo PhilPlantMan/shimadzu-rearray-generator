@@ -524,7 +524,7 @@ formic_enabled_var.set(int(read_config_variable("formic_acid_enable")))
 formic_enabled_checkbutton = ttk.Checkbutton(formic_tab, text="Enable formic acid addition", variable=formic_enabled_var)
 formic_enabled_checkbutton.pack(anchor="w", pady=5)
 
-formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic acid Reservoir Postion", padding=10)
+formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic Acid Reservoir Postion", padding=10)
 formic_well_frame.pack(fill="x", pady=5)
 formic_well_label = ttk.Label(formic_well_frame, text="Enter the well position of a 96 multwell plate that contains formic acid.\nThis will be the same multwell plate that contains matrix [if matrix addition is enabled].")
 formic_well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
