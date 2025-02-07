@@ -19,7 +19,7 @@ import shutil
 import sys
 from tkinter.filedialog import askdirectory
 import math
-
+# pd.options.mode.chained_assignment = None  # default='warn
 ####### GUI methods #######
 # Function to handle the selection of the Colony Detection directory
 def select_CD_directory():
@@ -197,7 +197,6 @@ def append_pixl_commands_to_array(prepared_array, stub_df, adapter_coordinates):
     shimadzuAdapterIndex = shimadzuAdapterIndex_start
     if formic_enabled_var.get()  == 0:
         for index, row in stub_df.iterrows():
-            if index == 0: continue
             shimadzuAdapterRow = adapter_coordinates.iloc[shimadzuAdapterIndex,:]
             prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
             if matrix_enabled_var.get() == 1:
@@ -207,7 +206,6 @@ def append_pixl_commands_to_array(prepared_array, stub_df, adapter_coordinates):
             shimadzuAdapterIndex += 1
     if formic_enabled_var.get()  == 1:
         for index, row in stub_df.iterrows():
-            if index == 0: continue
             shimadzuAdapterRow = adapter_coordinates.iloc[shimadzuAdapterIndex,:]
             prepared_array = append_colony_transfer(prepared_array,row, shimadzuAdapterRow)
             prepared_array = append_formic_acid_transfer(prepared_array, shimadzuAdapterRow)
@@ -217,7 +215,6 @@ def append_pixl_commands_to_array(prepared_array, stub_df, adapter_coordinates):
         if matrix_enabled_var.get() == 1:
             shimadzuAdapterIndex = shimadzuAdapterIndex_start
             for index, row in stub_df.iterrows():
-                if index == 0: continue
                 shimadzuAdapterRow = adapter_coordinates.iloc[shimadzuAdapterIndex,:]
                 prepared_array = append_matrix_transfer(prepared_array, shimadzuAdapterRow)
                 if (matrix_var.get() == "Double Dip"):
@@ -267,16 +264,23 @@ def create_targets_for_each_colony(stub_df,adapterCoords_df):
         new_adapter = adapterCoords_df
         new_adapter["targetName"] = "SlideAdapter" + str(adapter)
         all_adapter_coords = pd.concat([all_adapter_coords, new_adapter], ignore_index=True)
+    all_adapter_coords = all_adapter_coords[0:number_of_colonies]
     return all_adapter_coords
 
 
 # Trigger all methods required to make array and export to user defined directory
-def export_pixl_array(stub_df, adapter_coordinates_new):
-    pixl_array = prepare_pixl_array(stub_df, adapter_coordinates_new)
-    pixl_array = append_pixl_commands_to_array(pixl_array, stub_df, adapter_coordinates_new)
+def export_pixl_array(stub_df, adapter_coordinates):
+    pixl_array = prepare_pixl_array(stub_df, adapter_coordinates)
+
+    stub_df_without_plate_declaration = stub_df.iloc[1:,:].reset_index()
+    adapter_list = adapter_coordinates['targetName'].unique()
+    for adapter in adapter_list:
+        adapter_coordinates_subset = adapter_coordinates[adapter_coordinates['targetName']== adapter]
+        stub_df_subset = stub_df_without_plate_declaration[adapter_coordinates['targetName']== adapter]
+        pixl_array = append_pixl_commands_to_array(pixl_array, stub_df_subset, adapter_coordinates_subset)
 
     if additional_plate_enabled_var.get() == 1:
-        pixl_array = append_additional_target_to_array(pixl_array, stub_df)
+        pixl_array = append_additional_target_to_array(pixl_array, stub_df_without_plate_declaration)
 
     project_name = os.path.basename(directory_entry.get())
     array_path = os.path.join(export_directory_entry.get(), project_name + "_MALDI_Rearray.csv")
@@ -308,7 +312,6 @@ def append_additional_target_to_array(pixl_array, stub_df):
 
     #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
     for index, row in stub_df.iterrows():
-        if index == 0: continue
         targetPlateID = "AdditionalMWPTarget{}".format(target_plates_list[index - 1])
         target_position = target_positions[index - 1]
         target_row = target_position[0]  # Extract the first character
