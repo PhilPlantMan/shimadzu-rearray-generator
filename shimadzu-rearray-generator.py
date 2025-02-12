@@ -171,57 +171,33 @@ def get_export_directory():
 ####### Generating Rearry methods #######
 
 # Prepare a dataframe containing the plate definitions
-def prepare_pixl_array(stub_df, adapter_coordinates_new):
+def prepare_pixl_array():
     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-    
-    # Declare adapters
-    adapter_list = adapter_coordinates_new['targetName'].unique()
-    for adapter in adapter_list:
-        adapter_series = pd.Series({"source" : adapter, 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
-        pixlArray_df = pd.concat([pixlArray_df, adapter_series.to_frame().T], ignore_index=True)
-    
-    # Declare colony source plate
+    s1 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
+    s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Target"})
     firstStubRow = stub_df.iloc[0,:]
-    pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
-    
-    # Declare reagent MWP
-    reagent_series = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
-    # TODO temporary override is put in place to ensure red bay is occupied regardless of whether reagents are needed
-    if (matrix_enabled_var.get() == 1) | (formic_enabled_var.get()  == 1) | (True):
-        pixlArray_df = pd.concat([pixlArray_df, reagent_series.to_frame().T], ignore_index=True)
-    
-    # Set order using false pinnings
-    # TODO delete lines below to remove false pinnings
     s3 = pd.Series({"source" : firstStubRow.source, 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
-    s4 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""}) 
+    s4 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
+    pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
+    if matrix_enabled_var.get() == 1 | formic_enabled_var.get()  == 1:
+        pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
+        pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
-    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
-
-#For when BP has updated plate type
-# def prepare_pixl_array():
-#     pixlArray_df = pd.DataFrame(columns=["source", "sourceRow", "sourceCol", "target", "targetRow", "targetCol"])
-#     s1 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "SBS", 'sourceCol' : "NONE", 'target': "Source"})
-#     s2 = pd.Series({"source" : 'SlideAdapter', 'sourceRow' : "X", 'sourceCol' : "NONE", 'target': "Target"})
-#     firstStubRow = stub_df.iloc[0,:]   
-#     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
-#     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
-#     if matrix_enabled_var.get() == 1 | formic_enabled_var.get()  == 1:
-#         pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
-#     return pixlArray_df
 
 # def append_plate_order_commands(pixlArray_df):
 
 
 # Append PIXL  colony and matrix commands to the array
-def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
-    # shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    # availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
-    # if availableAdapterPositions < stub_df.shape[0]-1:
-    #     output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
-    #     stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
-    #     stub_df = stub_df_subset
-    shimadzuAdapterIndex_start = 0
+def append_pixl_commands_to_array(prepared_array):
+    shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
+    global stub_df
+    if availableAdapterPositions < stub_df.shape[0]-1:
+        output_text.insert(tk.END, "There are more colonies than available target positions on the MALDI-TOF adapter. Excess colonies will be ignored. \n")
+        stub_df_subset = stub_df.iloc[0:availableAdapterPositions+1,:]
+        stub_df = stub_df_subset
     shimadzuAdapterIndex = shimadzuAdapterIndex_start
     if formic_enabled_var.get()  == 0:
         for index, row in stub_df.iterrows():
@@ -257,7 +233,7 @@ def append_pixl_commands_to_array(prepared_array, stub_df, adapterCoords_df):
 def append_colony_transfer(prepared_array, stubRow, shimadzuAdapterRow):
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
-    targetSeries = pd.Series({"source": stubRow['source'],"sourceRow": stubRow['sourceRow'],"sourceCol": stubRow['sourceCol'], "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": stubRow['source'],"sourceRow": stubRow['sourceRow'],"sourceCol": stubRow['sourceCol'], "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
@@ -270,7 +246,7 @@ def append_matrix_transfer(prepared_array, shimadzuAdapterRow):
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": matrix_cartesian_y,"sourceCol": matrix_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
@@ -283,41 +259,24 @@ def append_formic_acid_transfer(prepared_array, shimadzuAdapterRow):
     if type(shimadzuAdapterRow) == pd.core.frame.DataFrame:
         shimadzuAdapterRow = shimadzuAdapterRow.squeeze(axis = 0)
 
-    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": formic_cartesian_y,"sourceCol": formic_cartesian_x, "target": shimadzuAdapterRow.loc['targetName'],"targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
+    targetSeries = pd.Series({"source": "reagentMWP","sourceRow": formic_cartesian_y,"sourceCol": formic_cartesian_x, "target": "SlideAdapter","targetRow": shimadzuAdapterRow.loc['y'] ,"targetCol":shimadzuAdapterRow.loc['x']})
     prepared_array = pd.concat([prepared_array, targetSeries.to_frame().T], ignore_index=True)
     return prepared_array
 
-
-def create_targets_for_each_colony(stub_df,adapterCoords_df):
-    number_of_colonies = stub_df.shape[0]-1
-    shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
-    positions_on_adapter = adapterCoords_df.shape[0]
-    availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
-    available_first_adapter_positions = number_of_colonies - shimadzuAdapterIndex_start
-    number_of_adapters = math.ceil((number_of_colonies - available_first_adapter_positions)/positions_on_adapter)+1
-    all_adapter_coords = adapterCoords_df.iloc[shimadzuAdapterIndex_start:]
-    all_adapter_coords.loc[:,"targetName"] = "SlideAdapter1"
-    for adapter in range(2, number_of_adapters+1):
-        new_adapter = adapterCoords_df
-        new_adapter["targetName"] = "SlideAdapter" + str(adapter)
-        all_adapter_coords = pd.concat([all_adapter_coords, new_adapter], ignore_index=True)
-    return all_adapter_coords
-
-
 # Trigger all methods required to make array and export to user defined directory
-def export_pixl_array(stub_df, adapter_coordinates_new):
-    pixl_array = prepare_pixl_array(stub_df, adapter_coordinates_new)
-    pixl_array = append_pixl_commands_to_array(pixl_array, stub_df, adapter_coordinates_new)
+def export_pixl_array():
+    pixl_array = prepare_pixl_array()
+    pixl_array = append_pixl_commands_to_array(pixl_array)
 
     if additional_plate_enabled_var.get() == 1:
-        pixl_array = append_additional_target_to_array(pixl_array, stub_df)
+        pixl_array = append_additional_target_to_array(pixl_array)
 
     project_name = os.path.basename(directory_entry.get())
     array_path = os.path.join(export_directory_entry.get(), project_name + "_MALDI_Rearray.csv")
     pixl_array.to_csv(array_path, header = False, index = False)
 
 # Function for addition target plate: prepend plate deinition and append PIXL commands
-def append_additional_target_to_array(pixl_array, stub_df):
+def append_additional_target_to_array(pixl_array):
 
     def addAdditionalTargetDefinition(plate_number, pixl_array):
         targetPlateID = "AdditionalMWPTarget{}".format(plate_number)
@@ -386,12 +345,12 @@ def upload_pinning_profile():
     shutil.copy(profile_src_path, profile_dest_path)
 
 def adapter_coordinates(user_adapter_choice):
+    global adapterCoords_df
     if user_adapter_choice == 'Shimadzu Precision adapter':
         adapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
     if user_adapter_choice == 'Singer Instruments target adapter':
         adapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_SI_adapter.csv"))
     adapterCoords_df["wellID"] = "Target " + adapterCoords_df["Plate"].map(str) + ", " + adapterCoords_df["Row"]+ adapterCoords_df["Column"].map(str)
-    return adapterCoords_df
 
 # Function called when 'Run' button pressed
 def run():
@@ -402,11 +361,10 @@ def run():
         formic_well_var.set(formic_well_row_selection.get()+str(formic_well_col_selection.get()))
         matrix_well_var.set(well_row_selection.get()+str(well_col_selection.get()))
         additional_well_var.set(additional_well_row_selection.get()+str(additional_well_col_selection.get()))
-        adapterCoords_df = adapter_coordinates(adapter_var.get())
-        # global stub_df
+        adapter_coordinates(adapter_var.get())
+        global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
-        adapter_coordinates_new = create_targets_for_each_colony(stub_df, adapterCoords_df)
-        export_pixl_array(stub_df, adapter_coordinates_new)
+        export_pixl_array()
         output_text.insert(tk.END, "Success! PIXL rearry file exported\n")
         update_config_all()
         output_text.insert(tk.END, "\n")
