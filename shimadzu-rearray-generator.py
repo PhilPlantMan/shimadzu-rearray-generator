@@ -180,10 +180,9 @@ def prepare_pixl_array():
     s4 = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "-45.6", 'sourceCol' : "-67.5", 'target': ""})
     pixlArray_df = pd.concat([pixlArray_df, s2.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, firstStubRow.to_frame().T], ignore_index=True)
-    if matrix_enabled_var.get() == 1 | formic_enabled_var.get()  == 1:
-        pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
-        pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s1.to_frame().T], ignore_index=True)
     pixlArray_df = pd.concat([pixlArray_df, s3.to_frame().T], ignore_index=True)
+    pixlArray_df = pd.concat([pixlArray_df, s4.to_frame().T], ignore_index=True)
     return pixlArray_df
 
 # def append_plate_order_commands(pixlArray_df):
@@ -365,6 +364,8 @@ def run():
         global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
         export_pixl_array()
+        if matrix_enabled_var.get() ==  0 | formic_enabled_var.get()  == 0:
+            output_text.insert(tk.END, "Please note, PIXL will  request that you load a MWP (named reagentMWP) even though you do not require formic acid or matrix. Please load an empty MWP when prompted.\n")
         output_text.insert(tk.END, "Success! PIXL rearry file exported\n")
         update_config_all()
         output_text.insert(tk.END, "\n")
