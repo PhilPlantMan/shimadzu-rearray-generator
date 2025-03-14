@@ -16,6 +16,10 @@ multiwell plate for downstream culturing or other uses.
 The application exports a rearray file to the users chosen directory for use with PIXL's Rearray mode.
 
 ## For Users
+### Downloading
+
+Please download the latest version of the software (version 1.0.2 with smt) from [here](https://drive.google.com/drive/folders/12RSN_4kw0VQdRsavTxEgXbtLq1lGS-Ml?usp=drive_link). 
+
 ### Usage
 
 Please follow the following [link for a detailed protocol](https://singer-instruments.fibery.io/Science/White_Papers_and_application_notes/Preparing-Shimadzu-MALDI-ToF-targets-with-PIXL-for-microbial-identification-Method-1---Using-the-Shi-2?sharing-key=af833114-8cd2-4562-a0ea-2791ca9cb624) on how to prepare Shimadzu MALDI-TOF targets using PIXL.
