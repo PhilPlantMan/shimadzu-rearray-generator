@@ -19,6 +19,9 @@ import shutil
 import sys
 from tkinter.filedialog import askdirectory
 import math
+import glob
+from pathlib import Path
+
 # pd.options.mode.chained_assignment = None  # default='warn
 ####### GUI methods #######
 # Function to handle the selection of the Colony Detection directory
@@ -147,6 +150,7 @@ def update_config_variable(variable_name, new_value):
 def update_config_all():
     update_config_variable("adapter_option", adapter_var.get())
     update_config_variable("first_target_position", wellID_dropdown.get())
+    update_config_variable("reagents_template", reagents_template_var.get())
 
     update_config_variable("formic_acid_enable", formic_enabled_var.get())
     update_config_variable("formic_acid_position", formic_well_var.get())
@@ -258,8 +262,8 @@ def create_targets_for_each_colony(stub_df,adapterCoords_df):
     # availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
     available_first_adapter_positions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
     number_of_adapters = math.ceil((number_of_colonies - available_first_adapter_positions)/positions_on_adapter)+1
-    all_adapter_coords = adapterCoords_df.iloc[shimadzuAdapterIndex_start:]
-    all_adapter_coords.loc[:,"targetName"] = "SlideAdapter1"
+    all_adapter_coords = adapterCoords_df.iloc[shimadzuAdapterIndex_start:,].copy()
+    all_adapter_coords["targetName"] = "SlideAdapter1"
     for adapter in range(2, number_of_adapters+1):
         new_adapter = adapterCoords_df
         new_adapter["targetName"] = "SlideAdapter" + str(adapter)
@@ -270,12 +274,15 @@ def create_targets_for_each_colony(stub_df,adapterCoords_df):
 
 # Trigger all methods required to make array and export to user defined directory
 def export_pixl_array(stub_df, adapter_coordinates):
+    adapter_coordinates = adapter_coordinates.reset_index()
     pixl_array = prepare_pixl_array(stub_df, adapter_coordinates)
 
     stub_df_without_plate_declaration = stub_df.iloc[1:,:].reset_index()
+    number_of_colonies = len(stub_df_without_plate_declaration)
     adapter_list = adapter_coordinates['targetName'].unique()
     for adapter in adapter_list:
-        adapter_coordinates_subset = adapter_coordinates[adapter_coordinates['targetName']== adapter]
+        adapter_coordinates_subset = adapter_coordinates[adapter_coordinates['targetName']== adapter].reset_index()
+        adapter_positions = len(adapter_coordinates_subset)
         stub_df_subset = stub_df_without_plate_declaration[adapter_coordinates['targetName']== adapter]
         pixl_array = append_pixl_commands_to_array(pixl_array, stub_df_subset, adapter_coordinates_subset)
 
@@ -414,6 +421,15 @@ def split_row_col_string(string):
     else:
         print(f"String {default_well} does not match the expected pattern.")
     return (well_row, well_col)
+
+def get_reagents_templates():
+    template_path = r"C:\ProgramData\Singer Instrument Company Limited\PIXL\Plate Dimensions\Repository"
+    xmls_full_path = ["Default"] +  glob.glob(os.path.join(template_path, "*.xml"))
+    xmls_stems = [Path(full_path).stem for full_path in xmls_full_path]
+    template_dict = dict(zip(xmls_stems, xmls_full_path))
+    return template_dict
+    
+
 ####### Main #######
 
 # Regardless of which adapter is in use, this df is used to pull the wellIDs
@@ -433,7 +449,7 @@ template_variables = {
 "matrix_application_mode": "Double Dip",
 "additional_plate_enable" : "0",
 "adapter_option": "Shimadzu Precision adapter",
-
+"reagents_template": "Default"
 }
 
 #################  GUI code  #############################
@@ -517,6 +533,20 @@ col_dropdown.grid(row=2, column=2, padx=5, pady=2)
 target_string_new = f"{plate_selection.get()}, {row_selection.get()}{col_selection.get()}"
 wellID_dropdown = tk.StringVar(root)
 wellIDs = shimadzuAdapterCoords_df['wellID'].unique()
+
+# Set the template for reagents MWP
+reagent_plate_type_frame = ttk.LabelFrame(basic_frame, text="Reagents Plate template", padding=10)
+reagent_plate_type_frame.pack(fill="x", pady=5)
+
+target_descr_label = ttk.Label(reagent_plate_type_frame, text="By default, reagents (formic acid and matrix) are held in a 96 MWP.\nTo change the reagents plate type, please select one of the available templates:")
+target_descr_label.pack(fill="x", pady=5)
+# target_descr_label.grid(row=0, column=0,columnspan=3, padx=5, pady=2,sticky="w")
+
+reagents_template_var = tk.StringVar(root)
+reagents_template_options = list(get_reagents_templates().keys())
+reagents_template_var.set(read_config_variable("reagents_template"))  # Default selection
+reagents_template_dropdown = ttk.OptionMenu(reagent_plate_type_frame, reagents_template_var, read_config_variable("reagents_template"), *reagents_template_options)
+reagents_template_dropdown.pack(fill="x", pady=5)
 
 # Tab 2: Formic acid Settings---------------------------------------------------------------------------------------
 formic_tab = ttk.Frame(notebook, padding=10)
