@@ -198,7 +198,7 @@ def prepare_pixl_array(stub_df, adapter_coordinates_new):
         template_name = get_plate_template_name(template_path)
         reagent_series = pd.Series({"source" : 'reagentMWP', 'sourceRow' : "MWP", 'sourceCol' : "96", 'target': "Source", 'targetRow': template_name})
     # TODO temporary override is put in place to ensure red bay is occupied regardless of whether reagents are needed
-    if (matrix_enabled_var.get() == 1) | (formic_enabled_var.get()  == 1) | (True):
+    if (matrix_enabled_var.get() == 1) | (formic_enabled_var.get()  == 1):
         pixlArray_df = pd.concat([pixlArray_df, reagent_series.to_frame().T], ignore_index=True)
     return pixlArray_df
 
@@ -330,8 +330,8 @@ def append_additional_target_to_array(pixl_array, stub_df):
 
     #plateTypeConversion = {'Agar': 'SBS', 'Multiwell': 'MWP'}[plate_type_var.get()]
     for index, row in stub_df.iterrows():
-        targetPlateID = "AdditionalMWPTarget{}".format(target_plates_list[index - 1])
-        target_position = target_positions[index - 1]
+        targetPlateID = "AdditionalMWPTarget{}".format(target_plates_list[index])
+        target_position = target_positions[index]
         target_row = target_position[0]  # Extract the first character
         target_col = int(target_position[1:])
         targetSeries = pd.Series({"source": row['source'],"sourceRow": row['sourceRow'],"sourceCol": row['sourceCol'], "target": targetPlateID,"targetRow": target_row ,"targetCol": target_col})

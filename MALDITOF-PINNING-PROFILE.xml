@@ -2,7 +2,7 @@
   <Source>
     <WetMix Speed="60" Acceleration="1000" Deceleration="1000" Radius="0.5" Angle="1080" Travel="0.5" Cycles="1" Use="False" />
     <DryMix Speed="20" Acceleration="1000" Deceleration="1000" Radius="0.5" Smoothing="1" Travel="2.5" Cycles="1" Use="False" />
-    <WetPinning Speed="60" PinningNormalisedClearanceFromBottomOfWell="0.5" NozzleClearance="2" />
+    <WetPinning Speed="60" PinningNormalisedClearanceFromBottomOfWell="0.02" NozzleClearance="2" />
     <DryPinning Speed="19" AgarPrePinningClearance="3.5" AgarPrePinningClearanceMode="ClearanceFromSurface" OffsetMode="None" PickupLineLength="9">
       <Piercing Use="False" Speed="10" />
     </DryPinning>
