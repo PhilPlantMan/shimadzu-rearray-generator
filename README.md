@@ -18,7 +18,7 @@ The application exports a rearray file to the users chosen directory for use wit
 ## For Users
 ### Downloading
 
-Please download the latest version of the software (version 1.0.2 with smt) from [here](https://drive.google.com/drive/folders/12RSN_4kw0VQdRsavTxEgXbtLq1lGS-Ml?usp=drive_link). 
+Please download the latest version of the software (version 1.0.4 with smt) from [here](https://drive.google.com/drive/folders/12RSN_4kw0VQdRsavTxEgXbtLq1lGS-Ml?usp=drive_link). 
 
 ### Usage
 
