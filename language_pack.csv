@@ -1,0 +1,50 @@
+English,Translation
+PIXL re-array Generator for Shimadzu MALDI-TOF,test
+Colony Detection Project Selection,test
+Basic Settings,test
+Select Colony Detection Project Folder:,test
+Browse,test
+The path should match this pattern: ...Tracking\[date]\Colony Detection\[project name],test
+Target Adapter Selection,test
+Select target adapter used to house Shimadzu targets in PIXL:,test
+Target Adapter Start Position Selection,test
+"The adapter can hold up to 4 Shimadzu targets (Target 1 to 4, left to right). Select the first Shimadzu target and the position to start pinning to. Subsequent targets will be filled from A1.",test
+First target,test
+Target,test
+Target row,test
+Target column,test
+Reagents Plate template,test
+"By default, reagents (formic acid and matrix) are held in a 96 MWP. To change the reagents plate type, please select one of the available templates:",test
+Optional: CH₂O₂ addition,test
+Enable formic acid addition,test
+Formic Acid Reservoir Position,test
+Enter the well position of a 96 multiwell plate that contains formic acid. This will be the same multiwell plate that contains matrix [if matrix addition is enabled].,test
+Formic acid Application Mode,test
+Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip) onto the microbial material.,test
+Single Dip,test
+Double Dip,test
+Optional: Matrix addition,test
+Enable matrix addition,test
+Matrix Reservoir Position,test
+Enter the well position of a 96 multwell plate that contains matrix. This will be the same multwell plate that contains formic acid [if formic acid addition is enabled].,test
+Matrix Application Mode,test
+Please select whether PIXL should pin matrix once (Single Dip) or twice (Double Dip) onto the microbial material.,test
+Optional: Additional target(s),test
+Enable Additional Plates,test
+Plate Format,test
+Select Format:,test
+Start Position,test
+"Select Start Position for first target plate. Once the first target plate has been filled, addtional target plates will fill from A1:",test
+Row,test
+Column,test
+Run: Generate re-array,test
+Export Directory,test
+Select PIXL Rearray Export Directory:,test
+Generate re-array,test
+Output:,test
+Success! PIXL rearry file exported,test
+No Pinning profile detected. One has been created. Please restart PIXL (You should only see this prompt on the first time running this app),test
+Valid Colony Detection project found,test
+Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection',test
+Shimadzu Precision adapter,shim_adapt
+Singer Instruments target adapter,sing_adapt

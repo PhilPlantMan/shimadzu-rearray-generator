@@ -74,9 +74,9 @@ def validate_stub_path():
         directory_entry.delete(0, tk.END)  # Clear the existing entry
         directory_entry.insert(tk.END, project_path)
         validCDPath = True
-        output_text.insert(tk.END, "Valid Colony Detection project found"+ "\n")
+        output_text.insert(tk.END, text_to_display("Valid Colony Detection project found")+ "\n")
     except: 
-        output_text.insert(tk.END, "Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'"+ "\n")
+        output_text.insert(tk.END, text_to_display("Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection'")+ "\n")
         validCDPath = False
     return validCDPath
 
@@ -367,7 +367,7 @@ def upload_pinning_profile():
                                      "PIXL", "Pinning Profiles", "User",
                                      "MALDITOF-PINNING-PROFILE.xml")
     if os.path.exists(profile_dest_path) == False:
-        output_text.insert(tk.END, "\nNo Pinning profile detected. One has been created.\nPlease restart PIXL (You should only see this prompt on the first time running this app)\n")
+        output_text.insert(tk.END, "\n"+ text_to_display("No Pinning profile detected. One has been created. Please restart PIXL (You should only see this prompt on the first time running this app)")+"\n")
     profile_src_path = resource_path("MALDITOF-PINNING-PROFILE.xml")
     shutil.copy(profile_src_path, profile_dest_path)
 
@@ -388,12 +388,16 @@ def run():
         formic_well_var.set(formic_well_row_selection.get()+str(formic_well_col_selection.get()))
         matrix_well_var.set(well_row_selection.get()+str(well_col_selection.get()))
         additional_well_var.set(additional_well_row_selection.get()+str(additional_well_col_selection.get()))
+        adapter_display_text = adapter_display_text_var.get()
+        global adapter_var
+        adapter_var = tk.StringVar(root)
+        adapter_var.set(display_text_dict_to_adapter_dict.get(adapter_display_text))
         adapterCoords_df = adapter_coordinates(adapter_var.get())
         # global stub_df
         stub_df = read_stub_tsv(directory_entry.get())
         adapter_coordinates_new = create_targets_for_each_colony(stub_df, adapterCoords_df)
         export_pixl_array(stub_df, adapter_coordinates_new)
-        output_text.insert(tk.END, "Success! PIXL rearry file exported\n")
+        output_text.insert(tk.END, text_to_display("Success! PIXL rearry file exported")+"\n")
         update_config_all()
         output_text.insert(tk.END, "\n")
         upload_pinning_profile()
@@ -438,9 +442,13 @@ def get_reagents_templates():
     template_dict = dict(zip(xmls_stems, xmls_full_path))
     return template_dict
     
+def text_to_display(key):
+    text_to_display = text_to_display_df.loc[text_to_display_df.loc[:,'English']==key,'Translation'].values[0]
+    return text_to_display
 
 ####### Main #######
-
+# load language pack
+text_to_display_df = pd.read_csv(resource_path("language_pack.csv"))
 # Regardless of which adapter is in use, this df is used to pull the wellIDs
 # for the GUI.
 shimadzuAdapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
@@ -465,7 +473,7 @@ template_variables = {
 
 # Create the root window
 root = tk.Tk()
-root.title("PIXL re-array Generator for Shimadzu MALDI-TOF")
+root.title(text_to_display("PIXL re-array Generator for Shimadzu MALDI-TOF"))
 root.iconbitmap(resource_path("icon.ico"))
 
 # Style setup
@@ -480,50 +488,66 @@ notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
 # Tab 1: Basic Settings---------------------------------------------------------------------------------------
 basic_frame = ttk.Frame(notebook, padding=10)
-notebook.add(basic_frame, text="Basic Settings")
+notebook.add(basic_frame, text=text_to_display("Basic Settings"))
 
 # Directory selection
-cdp_frame = ttk.LabelFrame(basic_frame, text="Colony Detection Project Selection", padding=10)
+cdp_frame = ttk.LabelFrame(basic_frame, text=text_to_display("Colony Detection Project Selection"), padding=10)
 cdp_frame.pack(fill="x", pady=5)
-cdp_label = ttk.Label(cdp_frame, text="Select Colony Detection Project Folder:")
+cdp_label = ttk.Label(cdp_frame, text=text_to_display("Select Colony Detection Project Folder:"))
 cdp_label.grid(row=0, column=0, columnspan= 3, padx=0, pady=2, sticky="w")
 directory_entry = ttk.Entry(cdp_frame, width=60)
 directory_entry.grid(row=1, column=0, columnspan= 3, padx=5, pady=2)
-cdp_button = ttk.Button(cdp_frame, text="Browse", command=select_CD_directory)
+cdp_button = ttk.Button(cdp_frame, text=text_to_display("Browse"), command=select_CD_directory)
 cdp_button.grid(row=1, column=4, padx=5, pady=2)
-pattern_label = ttk.Label(cdp_frame, text="The path should match this pattern: ...Tracking\\[date]\\Colony Detection\\[project name]")
+pattern_label = ttk.Label(cdp_frame, text=text_to_display(r"The path should match this pattern: ...Tracking\[date]\Colony Detection\[project name]"))
 pattern_label.grid(row=2, column=0, columnspan= 5, padx=0, pady=0, sticky="w")
 
 # Adapter Selection
-adapter_frame = ttk.LabelFrame(basic_frame, text="Target Adapter Selection", padding=10)
+adapter_frame = ttk.LabelFrame(basic_frame, text=text_to_display("Target Adapter Selection"), padding=10)
 adapter_frame.pack(fill="x", pady=5)
-adapter_var = tk.StringVar(root)
-adapter_options = ['Shimadzu Precision adapter', 'Singer Instruments target adapter']
-adapter_var.set(read_config_variable("adapter_option"))  # Default selection
-ttk.Label(adapter_frame, text="Select target adapter used to house Shimadzu targets in PIXL:").pack(anchor="w")
-adapter_dropdown = ttk.OptionMenu(adapter_frame, adapter_var, read_config_variable("adapter_option"), *adapter_options)
+# adapter_var = tk.StringVar(root)
+# adapter_options = ['Shimadzu Precision adapter', 'Singer Instruments target adapter']
+# adapter_var.set(read_config_variable("adapter_option"))  # Default selection
+# ttk.Label(adapter_frame, text=text_to_display("Select target adapter used to house Shimadzu targets in PIXL:")).pack(anchor="w")
+# adapter_dropdown = ttk.OptionMenu(adapter_frame, adapter_var, read_config_variable("adapter_option"), *adapter_options)
+# adapter_dropdown.pack(fill="x", pady=5)
+
+shimadzu_adapter_display_text = text_to_display('Shimadzu Precision adapter')
+singer_adapter_display_text = text_to_display('Singer Instruments target adapter')
+adapter_to_display_text_dict = {"Shimadzu Precision adapter":shimadzu_adapter_display_text, 
+                                "Singer Instruments target adapter":singer_adapter_display_text}
+display_text_dict_to_adapter_dict = {v: k for k, v in adapter_to_display_text_dict.items()}
+default_adapter = read_config_variable("adapter_option")
+default_adapter_display_text = adapter_to_display_text_dict.get(default_adapter)
+
+adapter_display_text_var = tk.StringVar(root)
+adapter_display_text_var.set(default_adapter_display_text)
+ttk.Label(adapter_frame, text=text_to_display("Select target adapter used to house Shimadzu targets in PIXL:")).pack(anchor="w")
+adapter_dropdown = ttk.OptionMenu(adapter_frame, adapter_display_text_var, default_adapter_display_text, *list(display_text_dict_to_adapter_dict.keys()))
 adapter_dropdown.pack(fill="x", pady=5)
 
 
+
+
 # Create the dropdown using the unique wellIDs as options
-adapter_start_frame = ttk.LabelFrame(basic_frame, text="Target Adapter Start Position Selection", padding=10)
+adapter_start_frame = ttk.LabelFrame(basic_frame, text=text_to_display("Target Adapter Start Position Selection"), padding=10)
 adapter_start_frame.pack(fill="x", pady=5)
 
-target_descr_label = ttk.Label(adapter_start_frame, text="The adapter can hold up to 4 Shimadzu targets (Target 1 to 4, left to right).\nSelect the first Shimadzu target and the position to start pinning to.\nSubsequent targets will be filled from A1.")
+target_descr_label = ttk.Label(adapter_start_frame, text=text_to_display("The adapter can hold up to 4 Shimadzu targets (Target 1 to 4, left to right). Select the first Shimadzu target and the position to start pinning to. Subsequent targets will be filled from A1."))
 target_descr_label.grid(row=0, column=0,columnspan=3, padx=5, pady=2,sticky="w")
 
-target_label = ttk.Label(adapter_start_frame, text="First target")
+target_label = ttk.Label(adapter_start_frame, text=text_to_display("First target"))
 target_label.grid(row=1, column=0, padx=5, pady=2, sticky= "w")
 target_plates = shimadzuAdapterCoords_df['Plate'].unique()
-formatted_plates = ["Target " + str(plate) for plate in target_plates]
+formatted_plates = ["Target" + " " + str(plate) for plate in target_plates]
 plate_selection = tk.StringVar(root)
 
 target_number, letter, final_number = split_target_row_col_string(read_config_variable("first_target_position"))
-plate_selection.set("Target "+str(target_number))  # Default selection
-plate_dropdown = ttk.OptionMenu(adapter_start_frame, plate_selection, "Target "+str(target_number), *formatted_plates)
+plate_selection.set("Target" + " " +str(target_number))  # Default selection
+plate_dropdown = ttk.OptionMenu(adapter_start_frame, plate_selection, "Target" + " " +str(target_number), *formatted_plates)
 plate_dropdown.grid(row=2, column=0, padx=5, pady=2)
 
-row_label = ttk.Label(adapter_start_frame, text="Target row")
+row_label = ttk.Label(adapter_start_frame, text=text_to_display("Target row"))
 row_label.grid(row=1, column=1, padx=5, pady=2, sticky= "w")
 target_rows = shimadzuAdapterCoords_df['Row'].unique()
 row_selection = tk.StringVar(root)
@@ -531,7 +555,7 @@ row_selection.set(letter)  # Default selection
 row_dropdown = ttk.OptionMenu(adapter_start_frame, row_selection, letter, *target_rows)
 row_dropdown.grid(row=2, column=1, padx=5, pady=2)
 
-col_label = ttk.Label(adapter_start_frame, text="Target column")
+col_label = ttk.Label(adapter_start_frame, text=text_to_display("Target column"))
 col_label.grid(row=1, column=2, padx=5, pady=2, sticky= "w")
 target_cols = shimadzuAdapterCoords_df['Column'].unique()
 col_selection = tk.StringVar(root)
@@ -544,10 +568,10 @@ wellID_dropdown = tk.StringVar(root)
 wellIDs = shimadzuAdapterCoords_df['wellID'].unique()
 
 # Set the template for reagents MWP
-reagent_plate_type_frame = ttk.LabelFrame(basic_frame, text="Reagents Plate template", padding=10)
+reagent_plate_type_frame = ttk.LabelFrame(basic_frame, text=text_to_display("Reagents Plate template"), padding=10)
 reagent_plate_type_frame.pack(fill="x", pady=5)
 
-target_descr_label = ttk.Label(reagent_plate_type_frame, text="By default, reagents (formic acid and matrix) are held in a 96 MWP.\nTo change the reagents plate type, please select one of the available templates:")
+target_descr_label = ttk.Label(reagent_plate_type_frame, text=text_to_display("By default, reagents (formic acid and matrix) are held in a 96 MWP. To change the reagents plate type, please select one of the available templates:"))
 target_descr_label.pack(fill="x", pady=5)
 # target_descr_label.grid(row=0, column=0,columnspan=3, padx=5, pady=2,sticky="w")
 
@@ -559,16 +583,16 @@ reagents_template_dropdown.pack(fill="x", pady=5)
 
 # Tab 2: Formic acid Settings---------------------------------------------------------------------------------------
 formic_tab = ttk.Frame(notebook, padding=10)
-notebook.add(formic_tab, text="Optional: CH₂O₂ addition")
+notebook.add(formic_tab, text=text_to_display("Optional: CH₂O₂ addition"))
 
 formic_enabled_var = tk.IntVar()
 formic_enabled_var.set(int(read_config_variable("formic_acid_enable")))
-formic_enabled_checkbutton = ttk.Checkbutton(formic_tab, text="Enable formic acid addition", variable=formic_enabled_var)
+formic_enabled_checkbutton = ttk.Checkbutton(formic_tab, text=text_to_display("Enable formic acid addition"), variable=formic_enabled_var)
 formic_enabled_checkbutton.pack(anchor="w", pady=5)
 
-formic_well_frame = ttk.LabelFrame(formic_tab, text="Formic Acid Reservoir Postion", padding=10)
+formic_well_frame = ttk.LabelFrame(formic_tab, text=text_to_display("Formic Acid Reservoir Position"), padding=10)
 formic_well_frame.pack(fill="x", pady=5)
-formic_well_label = ttk.Label(formic_well_frame, text="Enter the well position of a 96 multwell plate that contains formic acid.\nThis will be the same multwell plate that contains matrix [if matrix addition is enabled].")
+formic_well_label = ttk.Label(formic_well_frame, text=text_to_display("Enter the well position of a 96 multiwell plate that contains formic acid. This will be the same multiwell plate that contains matrix [if matrix addition is enabled]."))
 formic_well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
 well_row, well_col =split_row_col_string(read_config_variable("formic_acid_position"))
 
@@ -587,31 +611,31 @@ formic_well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 formic_well_var = tk.StringVar(root)
 
 # Formic Application Mode
-formic_mode_frame = ttk.LabelFrame(formic_tab, text="Formic acid Application Mode", padding=10)
+formic_mode_frame = ttk.LabelFrame(formic_tab, text=text_to_display("Formic acid Application Mode"), padding=10)
 formic_mode_frame.pack(fill="x", pady=5)
-formic_additional_col_label = ttk.Label(formic_mode_frame, text="Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip)\nonto the microbial material.")
+formic_additional_col_label = ttk.Label(formic_mode_frame, text=text_to_display("Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip) onto the microbial material."))
 formic_additional_col_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=0, sticky= "w")
 
 formic_mode_var = tk.StringVar()
 formic_mode_var.set(read_config_variable("formic_application_mode"))
-single_radio = ttk.Radiobutton(formic_mode_frame, text="Single Dip", variable=formic_mode_var, value="Single Dip")
+single_radio = ttk.Radiobutton(formic_mode_frame, text=text_to_display("Single Dip"), variable=formic_mode_var, value="Single Dip")
 single_radio.grid(row=1, column=0, padx=5, pady=2)
-double_radio = ttk.Radiobutton(formic_mode_frame, text="Double Dip", variable=formic_mode_var, value="Double Dip")
+double_radio = ttk.Radiobutton(formic_mode_frame, text=text_to_display("Double Dip"), variable=formic_mode_var, value="Double Dip")
 double_radio.grid(row=1, column=2, padx=5, pady=2)
 
 # Tab 3: Matrix Settings---------------------------------------------------------------------------------------
 # Well Input
 matrix_tab = ttk.Frame(notebook, padding=10)
-notebook.add(matrix_tab, text="Optional: Matrix addition")
+notebook.add(matrix_tab, text=text_to_display("Optional: Matrix addition"))
 
 matrix_enabled_var = tk.IntVar()
 matrix_enabled_var.set(int(read_config_variable("matrix_enable")))
-matrix_enabled_checkbutton = ttk.Checkbutton(matrix_tab, text="Enable matrix addition", variable=matrix_enabled_var)
+matrix_enabled_checkbutton = ttk.Checkbutton(matrix_tab, text=text_to_display("Enable matrix addition"), variable=matrix_enabled_var)
 matrix_enabled_checkbutton.pack(anchor="w", pady=5)
 
-well_frame = ttk.LabelFrame(matrix_tab, text="Matrix Reservoir Postion", padding=10)
+well_frame = ttk.LabelFrame(matrix_tab, text=text_to_display("Matrix Reservoir Position"), padding=10)
 well_frame.pack(fill="x", pady=5)
-well_label = ttk.Label(well_frame, text="Enter the well position of a 96 multwell plate that contains matrix.\nThis will be the same multwell plate that contains formic acid [if formic acid addition is enabled].")
+well_label = ttk.Label(well_frame, text=text_to_display("Enter the well position of a 96 multwell plate that contains matrix. This will be the same multwell plate that contains formic acid [if formic acid addition is enabled]."))
 well_label.grid(row=0, column=0,columnspan=7, padx=5, pady=2, sticky="w")
 
 well_row, well_col =split_row_col_string(read_config_variable("matrix_position"))
@@ -629,46 +653,46 @@ well_col_dropdown.grid(row=1, column=1, padx=5, pady=2)
 matrix_well_var = tk.StringVar(root)
 
 # Matrix Application Mode
-matrix_frame = ttk.LabelFrame(matrix_tab, text="Matrix Application Mode", padding=10)
+matrix_frame = ttk.LabelFrame(matrix_tab, text=text_to_display("Matrix Application Mode"), padding=10)
 matrix_frame.pack(fill="x", pady=5)
-additional_col_label = ttk.Label(matrix_frame, text="Please select whether PIXL should pin matrix once (Single Dip) or twice (Double Dip)\nonto the microbial material.")
+additional_col_label = ttk.Label(matrix_frame, text=text_to_display("Please select whether PIXL should pin matrix once (Single Dip) or twice (Double Dip) onto the microbial material."))
 additional_col_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=0, sticky= "w")
 
 matrix_var = tk.StringVar()
 matrix_var.set(read_config_variable("matrix_application_mode"))
-single_radio = ttk.Radiobutton(matrix_frame, text="Single Dip", variable=matrix_var, value="Single Dip")
+single_radio = ttk.Radiobutton(matrix_frame, text=text_to_display("Single Dip"), variable=matrix_var, value="Single Dip")
 single_radio.grid(row=1, column=0, padx=5, pady=2)
-double_radio = ttk.Radiobutton(matrix_frame, text="Double Dip (recommended)", variable=matrix_var, value="Double Dip")
+double_radio = ttk.Radiobutton(matrix_frame, text=text_to_display("Double Dip"), variable=matrix_var, value="Double Dip")
 double_radio.grid(row=1, column=2, padx=5, pady=2)
 
 
 # Tab 4: Additional plate Settings---------------------------------------------------------------------------------------
 additional_frame = ttk.Frame(notebook, padding=10)
-notebook.add(additional_frame, text="Optional: Additional target(s)")
+notebook.add(additional_frame, text=text_to_display("Optional: Additional target(s)"))
 
 # Checkbox to enable/disable additional options
 additional_plate_enabled_var = tk.IntVar()
 additional_plate_enabled_var.set(int(read_config_variable("additional_plate_enable")))
-additional_options_checkbutton = ttk.Checkbutton(additional_frame, text="Enable Additional Plates", variable=additional_plate_enabled_var)
+additional_options_checkbutton = ttk.Checkbutton(additional_frame, text=text_to_display("Enable Additional Plates"), variable=additional_plate_enabled_var)
 additional_options_checkbutton.pack(anchor="w", pady=5)
 
 # Format Selection
 format_var = tk.StringVar(root)
 format_var.set("96")
-format_frame = ttk.LabelFrame(additional_frame, text="Plate Format", padding=10)
+format_frame = ttk.LabelFrame(additional_frame, text=text_to_display("Plate Format"), padding=10)
 format_frame.pack(fill="x", pady=10)
-ttk.Label(format_frame, text="Select Format:").pack(anchor="w")
+ttk.Label(format_frame, text=text_to_display("Select Format:")).pack(anchor="w")
 ttk.Radiobutton(format_frame, text="96", variable=format_var, value="96").pack(anchor="w")
 ttk.Radiobutton(format_frame, text="384", variable=format_var, value="384").pack(anchor="w")
 format_var.trace('w', update_start_position_options)
 
 # Start Position Selection
-start_position_frame = ttk.LabelFrame(additional_frame, text="Start Position", padding=10)
+start_position_frame = ttk.LabelFrame(additional_frame, text=text_to_display("Start Position"), padding=10)
 start_position_frame.pack(fill="x", pady=10)
-additional_start_label = ttk.Label(start_position_frame, text="Select Start Position for first target plate.\nOnce the first target plate has been filled, addtional target plates will fill from A1:")
+additional_start_label = ttk.Label(start_position_frame, text=text_to_display("Select Start Position for first target plate. Once the first target plate has been filled, addtional target plates will fill from A1:"))
 additional_start_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=2, sticky= "w")
 
-additional_row_label = ttk.Label(start_position_frame, text="Row")
+additional_row_label = ttk.Label(start_position_frame, text=text_to_display("Row"))
 additional_row_label.grid(row=1, column=0, padx=5, pady=0, sticky= "w")
 well_rows, well_cols = well_positions = array_lister(format_var.get(), full = True)
 additional_well_row_selection = tk.StringVar(root)
@@ -676,7 +700,7 @@ additional_well_row_selection.set(well_rows[0])
 additional_well_row_dropdown = ttk.OptionMenu(start_position_frame, additional_well_row_selection, well_rows[0],*well_rows)
 additional_well_row_dropdown.grid(row=2, column=0, padx=1, pady=2, sticky= "w")
 
-additional_col_label = ttk.Label(start_position_frame, text="Column")
+additional_col_label = ttk.Label(start_position_frame, text=text_to_display("Column"))
 additional_col_label.grid(row=1, column=1, padx=5, pady=0, sticky= "w")
 additional_well_col_selection = tk.StringVar(root)
 additional_well_col_selection.set(well_cols[0])
@@ -687,21 +711,21 @@ additional_well_var = tk.StringVar(root)
 
 # Tab 5: Run ---------------------------------------------------------------------------------------
 run_frame = ttk.Frame(notebook, padding=10)
-notebook.add(run_frame, text="Run: Generate re-array")
+notebook.add(run_frame, text=text_to_display("Run: Generate re-array"))
 
 # PIXL Rearray Export Directory
-export_directory_frame = ttk.LabelFrame(run_frame, text="Export Directory", padding=10)
+export_directory_frame = ttk.LabelFrame(run_frame, text=text_to_display("Export Directory"), padding=10)
 export_directory_frame.pack(fill="x", pady=5)
-export_desc = ttk.Label(export_directory_frame, text="Select PIXL Rearray Export Directory:")
+export_desc = ttk.Label(export_directory_frame, text=text_to_display("Select PIXL Rearray Export Directory:"))
 export_desc.grid(row=0, column=0,columnspan=4, padx=5, pady=2, sticky="w")
 export_directory_entry = ttk.Entry(export_directory_frame, width=50)
 export_directory_entry.grid(row=1, column=0,columnspan=3, padx=5, pady=2, sticky="w")
 export_directory_entry.insert(tk.END, get_export_directory())
-export_button = ttk.Button(export_directory_frame, text="Browse", command=select_export_directory)
+export_button = ttk.Button(export_directory_frame, text=text_to_display("Browse"), command=select_export_directory)
 export_button.grid(row=1, column=4, padx=5, pady=2, sticky="w")
 
-ttk.Button(run_frame, text="Generate re-array", command=run).pack(pady=10)
-ttk.Label(run_frame, text="Output:").pack(anchor="w", pady=5)
+ttk.Button(run_frame, text=text_to_display("Generate re-array"), command=run).pack(pady=10)
+ttk.Label(run_frame, text=text_to_display("Output:")).pack(anchor="w", pady=5)
 output_text = scrolledtext.ScrolledText(run_frame, width=50, height=15)
 output_text.pack(fill="both", expand=True, pady=5)
 
