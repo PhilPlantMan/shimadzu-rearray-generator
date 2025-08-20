@@ -157,3 +157,4 @@ cython_debug/
 sandpit.py
 .spec
 shimadzu-rearray-generator.spec
+.vscode/settings.json
