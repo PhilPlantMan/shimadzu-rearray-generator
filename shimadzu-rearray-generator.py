@@ -19,6 +19,9 @@ import shutil
 import sys
 from tkinter.filedialog import askdirectory
 import math
+
+# Set to True to display English text instead of translations (for debugging)
+DEBUG_ENGLISH = False
 import glob
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -135,13 +138,13 @@ def update_config_variable(variable_name, new_value):
     updated_lines = []
 
     try:
-        with open(config_file, "r") as file:
+        with open(config_file, "r", encoding="utf-8") as file:
             for line in file:
                 if line.startswith(variable_name):
                     line = f"{variable_name} = {new_value}\n"
                 updated_lines.append(line)
 
-        with open(config_file, "w") as file:
+        with open(config_file, "w", encoding="utf-8") as file:
             file.writelines(updated_lines)
 
     except FileNotFoundError:
@@ -269,7 +272,7 @@ def append_formic_acid_transfer(prepared_array, shimadzuAdapterRow):
 
 def create_targets_for_each_colony(stub_df,adapterCoords_df):
     number_of_colonies = stub_df.shape[0]-1
-    shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values)
+    shimadzuAdapterIndex_start = int(adapterCoords_df[adapterCoords_df["wellID"]== wellID_dropdown.get()].index.values[0])
     positions_on_adapter = adapterCoords_df.shape[0]
     # availableAdapterPositions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
     available_first_adapter_positions = adapterCoords_df.shape[0] - shimadzuAdapterIndex_start
@@ -376,7 +379,7 @@ def adapter_coordinates(user_adapter_choice):
         adapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_Precision_adapter.csv"))
     if user_adapter_choice == 'Singer Instruments target adapter':
         adapterCoords_df = pd.read_csv(resource_path("shimadzu_adapter_coordinates_SI_adapter.csv"))
-    adapterCoords_df["wellID"] = "Target " + adapterCoords_df["Plate"].map(str) + ", " + adapterCoords_df["Row"]+ adapterCoords_df["Column"].map(str)
+    adapterCoords_df["wellID"] = text_to_display("Target") + " " + adapterCoords_df["Plate"].map(str) + ", " + adapterCoords_df["Row"]+ adapterCoords_df["Column"].map(str)
     return adapterCoords_df
 
 # Function called when 'Run' button pressed
@@ -413,14 +416,14 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 def split_target_row_col_string(string):
-    pattern = r"Target (\d+), ([A-Z])(\d+)"
+    pattern = r"\S+\s+(\d+),\s+([A-Z])(\d+)"
     match = re.match(pattern, string)
     if match:
         target_number = int(match.group(1))  # The number after "Target"
         letter = match.group(2)             # The letter
         final_number = int(match.group(3))  # The final number
     else:
-        print("String does not match the expected pattern.")
+        raise ValueError(f"String '{string}' does not match the expected pattern 'Target N, XN'.")
     return(target_number, letter, final_number)
 
 def split_row_col_string(string):
@@ -443,8 +446,12 @@ def get_reagents_templates():
     return template_dict
     
 def text_to_display(key):
-    text_to_display = text_to_display_df.loc[text_to_display_df.loc[:,'English']==key,'Translation'].values[0]
-    return text_to_display
+    if DEBUG_ENGLISH:
+        return key
+    matches = text_to_display_df.loc[text_to_display_df.loc[:,'English']==key,'Translation'].values
+    if len(matches) == 0:
+        return key
+    return matches[0]
 
 ####### Main #######
 # load language pack
@@ -539,12 +546,12 @@ target_descr_label.grid(row=0, column=0,columnspan=3, padx=5, pady=2,sticky="w")
 target_label = ttk.Label(adapter_start_frame, text=text_to_display("First target"))
 target_label.grid(row=1, column=0, padx=5, pady=2, sticky= "w")
 target_plates = shimadzuAdapterCoords_df['Plate'].unique()
-formatted_plates = ["Target" + " " + str(plate) for plate in target_plates]
+formatted_plates = [text_to_display("Target") + " " + str(plate) for plate in target_plates]
 plate_selection = tk.StringVar(root)
 
 target_number, letter, final_number = split_target_row_col_string(read_config_variable("first_target_position"))
-plate_selection.set("Target" + " " +str(target_number))  # Default selection
-plate_dropdown = ttk.OptionMenu(adapter_start_frame, plate_selection, "Target" + " " +str(target_number), *formatted_plates)
+plate_selection.set(text_to_display("Target") + " " +str(target_number))  # Default selection
+plate_dropdown = ttk.OptionMenu(adapter_start_frame, plate_selection, text_to_display("Target") + " " +str(target_number), *formatted_plates)
 plate_dropdown.grid(row=2, column=0, padx=5, pady=2)
 
 row_label = ttk.Label(adapter_start_frame, text=text_to_display("Target row"))
@@ -689,7 +696,7 @@ format_var.trace('w', update_start_position_options)
 # Start Position Selection
 start_position_frame = ttk.LabelFrame(additional_frame, text=text_to_display("Start Position"), padding=10)
 start_position_frame.pack(fill="x", pady=10)
-additional_start_label = ttk.Label(start_position_frame, text=text_to_display("Select Start Position for first target plate. Once the first target plate has been filled, addtional target plates will fill from A1:"))
+additional_start_label = ttk.Label(start_position_frame, text=text_to_display("Select Start Position for the first additional target plate. Once the first additional target plate has been filled, further additional target plates will fill from A1:"))
 additional_start_label.grid(row=0, column=0, columnspan= 5, padx=5, pady=2, sticky= "w")
 
 additional_row_label = ttk.Label(start_position_frame, text=text_to_display("Row"))

@@ -1,50 +1,62 @@
 English,Translation
-PIXL re-array Generator for Shimadzu MALDI-TOF,test
-Colony Detection Project Selection,test
-Basic Settings,test
-Select Colony Detection Project Folder:,test
-Browse,test
-The path should match this pattern: ...Tracking\[date]\Colony Detection\[project name],test
-Target Adapter Selection,test
-Select target adapter used to house Shimadzu targets in PIXL:,test
-Target Adapter Start Position Selection,test
-"The adapter can hold up to 4 Shimadzu targets (Target 1 to 4, left to right). Select the first Shimadzu target and the position to start pinning to. Subsequent targets will be filled from A1.",test
-First target,test
-Target,test
-Target row,test
-Target column,test
-Reagents Plate template,test
-"By default, reagents (formic acid and matrix) are held in a 96 MWP. To change the reagents plate type, please select one of the available templates:",test
-Optional: CH₂O₂ addition,test
-Enable formic acid addition,test
-Formic Acid Reservoir Position,test
-Enter the well position of a 96 multiwell plate that contains formic acid. This will be the same multiwell plate that contains matrix [if matrix addition is enabled].,test
-Formic acid Application Mode,test
-Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip) onto the microbial material.,test
-Single Dip,test
-Double Dip,test
-Optional: Matrix addition,test
-Enable matrix addition,test
-Matrix Reservoir Position,test
-Enter the well position of a 96 multwell plate that contains matrix. This will be the same multwell plate that contains formic acid [if formic acid addition is enabled].,test
-Matrix Application Mode,test
-Please select whether PIXL should pin matrix once (Single Dip) or twice (Double Dip) onto the microbial material.,test
-Optional: Additional target(s),test
-Enable Additional Plates,test
-Plate Format,test
-Select Format:,test
-Start Position,test
-"Select Start Position for first target plate. Once the first target plate has been filled, addtional target plates will fill from A1:",test
-Row,test
-Column,test
-Run: Generate re-array,test
-Export Directory,test
-Select PIXL Rearray Export Directory:,test
-Generate re-array,test
-Output:,test
-Success! PIXL rearry file exported,test
-No Pinning profile detected. One has been created. Please restart PIXL (You should only see this prompt on the first time running this app),test
-Valid Colony Detection project found,test
-Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection',test
-Shimadzu Precision adapter,shim_adapt
-Singer Instruments target adapter,sing_adapt
+PIXL re-array Generator for Shimadzu MALDI-TOF,Shimadzu製 MALDI-TOF用　Re-array生成
+Colony Detection Project Selection,コロニー検出プロジェクトの選択
+Basic Settings,基本設定
+Select Colony Detection Project Folder:,コロニー検出プロジェクトのフォルダを選択してください
+Browse,参照
+The path should match this pattern: ...Tracking\[date]\Colony Detection\[project name],"ファイルパスは次の形式に一致している必要があります：
+Tracking[日付]\Colony Detection[プロジェクト名]"
+Target Adapter Selection,ターゲットアダプターの選択
+Select target adapter used to house Shimadzu targets in PIXL:,PIXL格納用Shimadzuターゲットアダプター選択
+Target Adapter Start Position Selection,ターゲットアダプター スタート位置選択
+"The adapter can hold up to 4 Shimadzu targets (Target 1 to 4, left to right). Select the first Shimadzu target and the position to start pinning to. Subsequent targets will be filled from A1.","アダプターはShimazuのターゲットを4点まで保有可能です。(左から1→4)
+最初のターゲットを選択し、スタート地点を設定してください。
+次のターゲットはA1から配置されます"
+First target,最初のターゲット
+Target,ターゲット
+Target row,行
+Target column,列
+Reagents Plate template,試薬プレート 選択
+"By default, reagents (formic acid and matrix) are held in a 96 MWP. To change the reagents plate type, please select one of the available templates:","試薬(ギ酸とマトリクス)は96ウェルプレートがデフォルト設定です。
+試薬用プレートを変更する場合は次のテンプレートからお選びください："
+Optional: CH₂O₂ addition,オプション： CH₂O₂追加
+Enable formic acid addition,ギ酸追加
+Formic Acid Reservoir Position,ギ酸容器位置
+Enter the well position of a 96 multiwell plate that contains formic acid. This will be the same multiwell plate that contains matrix [if matrix addition is enabled].,"ギ酸を含む96ウェルマイクロプレートのウェル位置を入力してください。
+マトリクスも同じマルチウェルプレートから摂取します。
+ [マトリクス追加機能が選択されている場合]"
+Formic acid Application Mode,ギ酸追加モード
+Please select whether PIXL should pin formic acid once (Single Dip) or twice (Double Dip) onto the microbial material.,ターゲットへのギ酸投与を1回行うか2回行うか選択ください。
+Single Dip,1回
+Double Dip,2回(推奨)
+Optional: Matrix addition,オプション：マトリックス追加 
+Enable matrix addition,マトリックス追加
+Matrix Reservoir Position,マトリックス容器位置
+Enter the well position of a 96 multwell plate that contains matrix. This will be the same multwell plate that contains formic acid [if formic acid addition is enabled].,"マトリックスを含む96ウェルプレートのウェル位置を入力してください。
+ ギ酸も同じマルチウェルプレートから摂取します。
+ [ギ酸追加機能が選択されている場合]"
+Matrix Application Mode,マトリクス追加モード
+Please select whether PIXL should pin matrix once (Single Dip) or twice (Double Dip) onto the microbial material.,ターゲットへのマトリックス投与を1回行うか2回行うか選択ください。
+Optional: Additional target(s),オプション：追加ターゲット
+Enable Additional Plates,プレート追加
+Plate Format,プレート様式
+Select Format:,フォーマット選択：
+Start Position,スタート位置
+"Select Start Position for the first additional target plate. Once the first additional target plate has been filled, further additional target plates will fill from A1:","最初の追加ターゲットプレートの開始位置を選択してください。
+ターゲットプレートへのピッキングが完了次第、追加プレートはA1より開始します。"
+Row,行
+Column,列
+Run: Generate re-array,実行： Re-array生成
+Export Directory,出力先
+Select PIXL Rearray Export Directory:,PIXL Re-array の出力先を選択：
+Generate re-array,Re-array 生成
+Output:,出力
+Success! PIXL rearry file exported,PIXL Re-array ファイルのエクスポートに成功しました!
+No Pinning profile detected. One has been created. Please restart PIXL (You should only see this prompt on the first time running this app),"ピニング用プロファイルが検出されない為、自動で生成します。
+ PIXLを再起動してください。(このメッセージはアプリの初起動でのみ表示されます）"
+Valid Colony Detection project found,コロニー検出ファイルが見つかりました
+Colony Detection project not found. Please ensure the parent folder of the project selected is 'Colony Detection',"コロニー検出のファイルが見つかりません。
+選択したファイルが「Colony Detection」フォルダー内にあることを確認してください。"
+Shimadzu Precision adapter,Shimadzu精密アダプター
+Singer Instruments target adapter,Singer Instruments ターゲットアダプター
+Target,ターゲット
